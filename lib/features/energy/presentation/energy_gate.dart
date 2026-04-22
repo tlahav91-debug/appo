@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/g_btn.dart';
@@ -122,11 +123,14 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
           ),
           const SizedBox(height: 10),
 
-          // Option 3 — Buy gems (routes to gem shop in PRD-007)
+          // Option 3 — Buy gems
           GBtn(
             gradient: goldGrad,
             width: double.infinity,
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/shop/gems');
+            },
             child: Text('Get Gems',
                 style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700, fontSize: 15)),
           ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/profile_repository.dart';
 import '../domain/profile.dart';
@@ -23,6 +24,9 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     final repo = ref.read(profileRepositoryProvider);
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
+
+    // Link RevenueCat identity to Supabase user ID
+    await Purchases.logIn(userId);
 
     // Serve cache immediately while fetching live data
     final cached = await repo.getCachedProfile();
@@ -63,6 +67,7 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     await _realtimeSub?.cancel();
     _realtimeSub = null;
     await repo.clearCache();
+    await Purchases.logOut();
     await Supabase.instance.client.auth.signOut();
     ref.invalidateSelf();
   }

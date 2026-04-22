@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/collectibles/presentation/album_screen.dart';
+import '../../features/shop/presentation/gem_shop_screen.dart';
 import '../../features/episodes/domain/episode.dart';
 import '../../features/episodes/presentation/series_screen.dart';
 import '../../features/episodes/presentation/episode_detail_screen.dart';
@@ -46,6 +47,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => AlbumScreen(
           seriesId: state.pathParameters['seriesId']!,
         ),
+      ),
+      GoRoute(
+        path: '/shop/gems',
+        builder: (_, __) => const GemShopScreen(),
       ),
     ],
   );
