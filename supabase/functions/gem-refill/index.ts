@@ -6,9 +6,7 @@ const GEM_REFILL_COST = 50;
 const MAX_ENERGY = 20;
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
@@ -23,7 +21,6 @@ Deno.serve(async (req: Request) => {
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
   const userId = user.id;
 
-  // Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("current_energy, last_refill_at, gems")
@@ -32,7 +29,6 @@ Deno.serve(async (req: Request) => {
 
   if (!profile) return json({ error: "Profile not found" }, 404);
 
-  // Lazy refill to get accurate current energy
   const now = Date.now();
   const hoursElapsed = Math.floor((now - new Date(profile.last_refill_at).getTime()) / 3_600_000);
   const refilledEnergy = Math.min(MAX_ENERGY, profile.current_energy + hoursElapsed);
@@ -45,11 +41,11 @@ Deno.serve(async (req: Request) => {
     return json({ code: "INSUFFICIENT_GEMS", gems: profile.gems, required: GEM_REFILL_COST }, 402);
   }
 
-  const newGems = profile.gems - GEM_REFILL_COST;
   const energyGained = MAX_ENERGY - refilledEnergy;
+  const newGems = profile.gems - GEM_REFILL_COST;
   const idempotencyKey = `gem_refill_${userId}_${now}`;
 
-  // Debit gems via ledger
+  // Insert ledger row first
   await supabase.from("currency_ledger").insert({
     user_id: userId,
     currency_type: "gems",
@@ -59,12 +55,22 @@ Deno.serve(async (req: Request) => {
     idempotency_key: idempotencyKey,
   });
 
-  // Update profile — energy to max, gems debited, reset refill clock
-  await supabase.from("profiles")
+  // Conditional UPDATE — WHERE gems >= GEM_REFILL_COST prevents going negative in a race
+  const { data: updated } = await supabase
+    .from("profiles")
     .update({ current_energy: MAX_ENERGY, gems: newGems, last_refill_at: new Date(now).toISOString() })
-    .eq("id", userId);
+    .eq("id", userId)
+    .gte("gems", GEM_REFILL_COST)  // BUG-003 fix: atomic guard
+    .select("id");
 
-  // Log energy gain
+  if (!updated || updated.length === 0) {
+    // Concurrent debit already consumed the gems — roll back ledger entry
+    await supabase.from("currency_ledger")
+      .delete()
+      .eq("idempotency_key", idempotencyKey);
+    return json({ code: "INSUFFICIENT_GEMS", gems: 0, required: GEM_REFILL_COST }, 402);
+  }
+
   await supabase.from("energy_log").insert({
     user_id: userId,
     delta: energyGained,

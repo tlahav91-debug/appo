@@ -6,24 +6,15 @@ const EPISODE_ENERGY_COST = 5;
 const MAX_ENERGY = 20;
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  // Auth
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return json({ error: "Unauthorized" }, 401);
-  }
+  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
   const jwt = authHeader.slice(7);
 
-  // Parse body
   let body: { episode_id?: string; request_id?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON body" }, 400); }
+
   const { episode_id, request_id } = body;
   if (!episode_id || !request_id) {
     return json({ error: "episode_id and request_id are required" }, 400);
@@ -34,25 +25,24 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Verify JWT and get user
   const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
   const userId = user.id;
 
-  // Check idempotency — return early if request_id already processed
-  const { data: existingUnlock } = await supabase
+  // Idempotency: return early if this exact request_id already completed
+  const { data: existingByRequest } = await supabase
     .from("episode_unlocks")
-    .select("id, energy_cost_paid")
+    .select("id")
     .eq("user_id", userId)
     .eq("episode_id", episode_id)
     .eq("reference_id", request_id)
     .maybeSingle();
 
-  if (existingUnlock) {
-    return json({ unlocked: true, already_unlocked: true, energy_remaining: null }, 200);
+  if (existingByRequest) {
+    return json({ unlocked: true, already_unlocked: true }, 200);
   }
 
-  // Also check if already unlocked by any prior request (different request_id)
+  // Also return early if episode already unlocked by any prior call
   const { data: priorUnlock } = await supabase
     .from("episode_unlocks")
     .select("id")
@@ -65,74 +55,89 @@ Deno.serve(async (req: Request) => {
   }
 
   // Fetch episode
-  const { data: episode, error: epErr } = await supabase
+  const { data: episode } = await supabase
     .from("episodes")
     .select("id, is_free, energy_cost")
     .eq("id", episode_id)
     .maybeSingle();
 
-  if (epErr || !episode) return json({ error: "Episode not found" }, 404);
+  if (!episode) return json({ error: "Episode not found" }, 404);
 
   // Fetch profile
-  const { data: profile, error: profErr } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("current_energy, last_refill_at")
     .eq("id", userId)
     .single();
 
-  if (profErr || !profile) return json({ error: "Profile not found" }, 404);
+  if (!profile) return json({ error: "Profile not found" }, 404);
 
-  // Compute lazy refill
+  // Lazy refill calculation
   const now = Date.now();
-  const lastRefill = new Date(profile.last_refill_at).getTime();
-  const hoursElapsed = Math.floor((now - lastRefill) / 3_600_000);
+  const lastRefillMs = new Date(profile.last_refill_at).getTime();
+  const hoursElapsed = Math.floor((now - lastRefillMs) / 3_600_000);
   const refilledEnergy = Math.min(MAX_ENERGY, profile.current_energy + hoursElapsed);
 
-  // Free episode — unlock with no energy debit
+  // Advance last_refill_at by credited hours (don't drift if already at max)
+  const hoursConsumedByRefill = refilledEnergy - profile.current_energy;
+  const advancedRefillAt = refilledEnergy === MAX_ENERGY
+    ? new Date(now).toISOString()
+    : new Date(lastRefillMs + hoursConsumedByRefill * 3_600_000).toISOString();
+
+  // Free episode: persist refill state but no energy debit
   if (episode.is_free) {
+    await supabase.from("profiles")
+      .update({ current_energy: refilledEnergy, last_refill_at: advancedRefillAt })
+      .eq("id", userId);
+
     await supabase.from("episode_unlocks").insert({
       user_id: userId,
       episode_id,
       energy_cost_paid: 0,
       reference_id: request_id,
     });
+
     return json({ unlocked: true, energy_remaining: refilledEnergy }, 200);
   }
 
-  // Check sufficient energy
+  // Paid episode: check sufficient energy
   const cost = episode.energy_cost ?? EPISODE_ENERGY_COST;
   if (refilledEnergy < cost) {
-    return json({
-      code: "INSUFFICIENT_ENERGY",
-      current: refilledEnergy,
-      required: cost,
-    }, 402);
+    return json({ code: "INSUFFICIENT_ENERGY", current: refilledEnergy, required: cost }, 402);
   }
 
   const newEnergy = refilledEnergy - cost;
 
-  // Compute new last_refill_at:
-  // If energy was refilled, advance last_refill_at by the hours consumed,
-  // but if now at max reset to now() so no phantom accumulation.
-  const hoursConsumedByRefill = refilledEnergy - profile.current_energy;
-  const newLastRefillAt = newEnergy === MAX_ENERGY
-    ? new Date(now).toISOString()
-    : new Date(lastRefill + hoursConsumedByRefill * 3_600_000).toISOString();
-
-  // Apply debit + unlock atomically via sequential service-role writes
-  const { error: updateErr } = await supabase
+  // Optimistic-lock UPDATE: only succeeds if current_energy hasn't changed since we read it
+  // This prevents double-debit from concurrent requests
+  const { data: updatedRows, error: updateErr } = await supabase
     .from("profiles")
-    .update({ current_energy: newEnergy, last_refill_at: newLastRefillAt })
-    .eq("id", userId);
+    .update({ current_energy: newEnergy, last_refill_at: advancedRefillAt })
+    .eq("id", userId)
+    .eq("current_energy", profile.current_energy)  // optimistic lock
+    .select("id");
 
-  if (updateErr) return json({ error: "Failed to update energy" }, 500);
+  if (updateErr || !updatedRows || updatedRows.length === 0) {
+    // Another concurrent request updated energy first — ask client to retry
+    return json({ code: "ENERGY_CONFLICT", message: "Energy state changed, please retry" }, 409);
+  }
 
-  await supabase.from("episode_unlocks").insert({
+  // Insert unlock row — ON CONFLICT handles the rare race where both pass optimistic lock
+  const { error: unlockErr } = await supabase.from("episode_unlocks").insert({
     user_id: userId,
     episode_id,
     energy_cost_paid: cost,
     reference_id: request_id,
   });
+
+  if (unlockErr) {
+    // UNIQUE constraint fired — episode was unlocked by the concurrent request
+    // Revert the energy debit since the unlock already exists
+    await supabase.from("profiles")
+      .update({ current_energy: refilledEnergy, last_refill_at: advancedRefillAt })
+      .eq("id", userId);
+    return json({ unlocked: true, already_unlocked: true }, 200);
+  }
 
   await supabase.from("energy_log").insert({
     user_id: userId,
