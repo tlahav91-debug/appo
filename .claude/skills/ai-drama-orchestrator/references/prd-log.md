@@ -10,3 +10,4 @@
 | PRD-006 | Collectibles + Album System | CLOSED | 2026-04-22 | QA PASS — collectible minting in record-choice, AlbumScreen grid, CollectibleCard, CollectibleToast. 0 bugs. |
 | PRD-007 | RevenueCat IAP — Gem Packs | CLOSED | 2026-04-22 | QA PASS — revenuecat-webhook, GemShopScreen, RC logIn/logOut wired. 0 bugs. |
 | PRD-008 | AdMob Rewarded Ads | CLOSED | 2026-04-22 | QA PASS — AdService with Completer flow, credit gated on onUserEarnedReward. 0 bugs. |
+| PRD-009 | Season Pass (Drama Pass) | CLOSED | 2026-04-22 | QA PASS — subscription webhook, claim_pass_bonus RPC, RC entitlement sync, PASS HUD badge. 0 bugs. |
