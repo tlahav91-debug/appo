@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/domain/profile.dart';
-import 'g_btn.dart';
 
 class HUD extends ConsumerWidget implements PreferredSizeWidget {
   const HUD({super.key});
@@ -56,9 +56,8 @@ class _HudContent extends StatelessWidget {
           // Level badge
           Text(
             'Lv.${profile.fanLevel}',
-            style: const TextStyle(
+            style: GoogleFonts.nunito(
               color: gold,
-              fontFamily: 'Nunito',
               fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
@@ -89,9 +88,8 @@ class _HudContent extends StatelessWidget {
           const SizedBox(width: 3),
           Text(
             _fmt(profile.coins),
-            style: const TextStyle(
+            style: GoogleFonts.nunito(
               color: gold,
-              fontFamily: 'Nunito',
               fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
@@ -102,9 +100,8 @@ class _HudContent extends StatelessWidget {
           const SizedBox(width: 3),
           Text(
             _fmt(profile.gems),
-            style: const TextStyle(
+            style: GoogleFonts.nunito(
               color: cyan,
-              fontFamily: 'Nunito',
               fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
@@ -145,8 +142,13 @@ class _HudContent extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: pink),
-              title: const Text('Sign out',
-                  style: TextStyle(color: textCol, fontFamily: 'Nunito', fontWeight: FontWeight.w700)),
+              title: Text(
+                'Sign out',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 ref.read(profileProvider.notifier).signOut();
@@ -168,10 +170,10 @@ class _HudSkeleton extends StatelessWidget {
       height: 56,
       color: bgDeep.withOpacity(0.95),
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: const Row(
         children: [
-          Container(width: 36, height: 36, decoration: const BoxDecoration(color: cardHi, shape: BoxShape.circle)),
-          const Spacer(),
+          CircleAvatar(radius: 18, backgroundColor: cardHi),
+          Spacer(),
         ],
       ),
     );

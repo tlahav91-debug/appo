@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/stars.dart';
 
@@ -7,17 +8,16 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: bgDeep,
       body: Stack(
         children: [
-          Stars(),
+          const Stars(),
           Center(
             child: Text(
               'DramaPlay',
-              style: TextStyle(
+              style: GoogleFonts.nunito(
                 color: pink,
-                fontFamily: 'Nunito',
                 fontWeight: FontWeight.w900,
                 fontSize: 36,
                 letterSpacing: 1.5,

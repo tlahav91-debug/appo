@@ -37,7 +37,9 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
 
   Future<void> signOut() async {
     final repo = ref.read(profileRepositoryProvider);
-    await Supabase.instance.client.auth.signOut();
     await repo.clearCache();
+    await Supabase.instance.client.auth.signOut();
+    // Invalidate so build() is called fresh on the next login
+    ref.invalidateSelf();
   }
 }

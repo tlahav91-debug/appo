@@ -19,10 +19,15 @@ CREATE POLICY "Users can view own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile"
+-- Only allow client to update display fields; economy columns are server-write only
+CREATE POLICY "Users can update own display fields"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
+
+-- Revoke broad UPDATE and grant only the two safe columns to authenticated role
+REVOKE UPDATE ON public.profiles FROM authenticated;
+GRANT UPDATE (username, avatar_url) ON public.profiles TO authenticated;
 
 -- Auto-create profile row when a new auth user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user()

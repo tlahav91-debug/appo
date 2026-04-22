@@ -25,18 +25,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  fonts:
-    - family: Nunito
-      fonts:
-        - asset: fonts/Nunito-Bold.ttf
-          weight: 700
-        - asset: fonts/Nunito-ExtraBold.ttf
-          weight: 800
-        - asset: fonts/Nunito-Black.ttf
-          weight: 900
-    - family: Sora
-      fonts:
-        - asset: fonts/Sora-Regular.ttf
-          weight: 400
-        - asset: fonts/Sora-Medium.ttf
-          weight: 500
+  # Fonts served via google_fonts package — no bundled assets needed

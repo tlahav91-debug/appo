@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/stars.dart';
 import '../../../shared/widgets/hud.dart';
@@ -11,15 +12,14 @@ class LeaderboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: bgDeep,
       appBar: const HUD(),
-      body: const Stack(
+      body: Stack(
         children: [
-          Stars(),
+          const Stars(),
           Center(
             child: Text(
               'Rank',
-              style: TextStyle(
+              style: GoogleFonts.nunito(
                 color: textCol,
-                fontFamily: 'Nunito',
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
               ),

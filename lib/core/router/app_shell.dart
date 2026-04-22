@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/profile/presentation/home_screen.dart';
 import '../../features/profile/presentation/journey_screen.dart';
@@ -123,9 +124,8 @@ class _TabButton extends StatelessWidget {
             ),
             Text(
               item.label,
-              style: TextStyle(
-                color: active ? Colors.white : textDim,
-                fontFamily: 'Nunito',
+              style: GoogleFonts.nunito(
+                color: active ? textCol : textDim,
                 fontWeight: FontWeight.w700,
                 fontSize: 10,
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/stars.dart';
 import '../../../shared/widgets/g_btn.dart';
@@ -36,7 +37,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       } else {
         await repo.signInWithEmail(_emailCtrl.text.trim(), _passCtrl.text);
       }
-      // Router redirect handles navigation via auth state change
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,25 +82,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 40),
-                      // Logo / title
-                      const Text(
+                      Text(
                         'DramaPlay',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: GoogleFonts.nunito(
                           color: pink,
-                          fontFamily: 'Nunito',
                           fontWeight: FontWeight.w900,
                           fontSize: 36,
                           letterSpacing: 1.5,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Your story. Your choice.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: GoogleFonts.sora(
                           color: textSec,
-                          fontFamily: 'Sora',
                           fontSize: 14,
                         ),
                       ),
@@ -132,7 +129,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       TextFormField(
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: textCol, fontFamily: 'Sora'),
+                        style: GoogleFonts.sora(color: textCol),
                         decoration: const InputDecoration(
                           hintText: 'Email address',
                           prefixIcon: Icon(Icons.email_outlined, color: textSec),
@@ -145,7 +142,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       TextFormField(
                         controller: _passCtrl,
                         obscureText: true,
-                        style: const TextStyle(color: textCol, fontFamily: 'Sora'),
+                        style: GoogleFonts.sora(color: textCol),
                         decoration: const InputDecoration(
                           hintText: 'Password',
                           prefixIcon: Icon(Icons.lock_outline, color: textSec),
@@ -164,13 +161,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: textCol,
+                                ),
                               )
                             : Text(
                                 _isSignUp ? 'Start Watching' : 'Sign In',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontFamily: 'Nunito',
+                                style: GoogleFonts.nunito(
+                                  color: textCol,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
                                 ),
@@ -182,8 +180,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         const Expanded(child: Divider(color: border)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text('or',
-                              style: TextStyle(color: textDim, fontFamily: 'Sora')),
+                          child: Text(
+                            'or',
+                            style: GoogleFonts.sora(color: textDim),
+                          ),
                         ),
                         const Expanded(child: Divider(color: border)),
                       ]),
@@ -194,20 +194,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         child: Container(
                           height: 52,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: textCol,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.apple, color: Colors.black, size: 22),
-                              SizedBox(width: 8),
+                              const Icon(Icons.apple, color: bgDeep, size: 22),
+                              const SizedBox(width: 8),
                               Text(
                                 'Continue with Apple',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontFamily: 'Nunito',
+                                style: GoogleFonts.nunito(
+                                  color: bgDeep,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,
                                 ),
@@ -252,9 +251,8 @@ class _ToggleTab extends StatelessWidget {
           alignment: Alignment.center,
           child: Text(
             label,
-            style: TextStyle(
-              color: active ? Colors.white : textDim,
-              fontFamily: 'Nunito',
+            style: GoogleFonts.nunito(
+              color: active ? textCol : textDim,
               fontWeight: FontWeight.w700,
               fontSize: 14,
             ),
