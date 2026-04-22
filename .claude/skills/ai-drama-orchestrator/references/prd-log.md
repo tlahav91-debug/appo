@@ -8,3 +8,4 @@
 | PRD-004 | Dual Currency Ledger | CLOSED | 2026-04-22 | QA PASS — earn-coins Edge Function, Realtime HUD sync, reconcile RPC. 0 bugs. |
 | PRD-005 | Episode Unlock + Choice Flow | CLOSED | 2026-04-22 | QA PASS — record-choice Edge Function, SeriesScreen, EpisodeDetailScreen, ChoiceSheet, CoinToast. 0 bugs. |
 | PRD-006 | Collectibles + Album System | CLOSED | 2026-04-22 | QA PASS — collectible minting in record-choice, AlbumScreen grid, CollectibleCard, CollectibleToast. 0 bugs. |
+| PRD-007 | RevenueCat IAP — Gem Packs | CLOSED | 2026-04-22 | QA PASS — revenuecat-webhook, GemShopScreen, RC logIn/logOut wired. 0 bugs. |
