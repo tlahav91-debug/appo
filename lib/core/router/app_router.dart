@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/episodes/domain/episode.dart';
+import '../../features/episodes/presentation/series_screen.dart';
+import '../../features/episodes/presentation/episode_detail_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -25,6 +28,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
       GoRoute(path: '/home', builder: (_, __) => const AppShell()),
+      GoRoute(
+        path: '/series/:seriesId',
+        builder: (_, state) => SeriesScreen(
+          seriesId: state.pathParameters['seriesId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/series/:seriesId/episode/:episodeId',
+        builder: (_, state) => EpisodeDetailScreen(
+          episode: state.extra as Episode,
+        ),
+      ),
     ],
   );
 });
