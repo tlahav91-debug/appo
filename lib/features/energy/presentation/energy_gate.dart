@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/g_btn.dart';
 import '../../../shared/widgets/energy_timer.dart';
+import '../../ads/application/ad_provider.dart';
 import '../application/energy_provider.dart';
 import '../data/watch_episode_service.dart';
 
@@ -33,6 +34,29 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
 
   Future<void> _claimAdReward() async {
     setState(() { _adLoading = true; _feedback = null; });
+
+    final adService = ref.read(adServiceProvider);
+    final adResult = await adService.showAd();
+
+    if (!mounted) return;
+
+    if (adResult == AdShowResult.dismissed) {
+      setState(() {
+        _feedback = 'Watch the full ad to earn energy.';
+        _adLoading = false;
+      });
+      return;
+    }
+
+    if (adResult != AdShowResult.rewarded) {
+      setState(() {
+        _feedback = 'Ad not available right now. Try again later.';
+        _adLoading = false;
+      });
+      return;
+    }
+
+    // Ad fully watched — credit server-side
     final service = ref.read(watchEpisodeServiceProvider);
     final result = await service.claimAdReward(rewardType: 'energy');
     if (!mounted) return;
@@ -45,7 +69,7 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
     } else {
       setState(() => _feedback = result.error == AdRewardError.capReached
           ? 'You\'ve claimed all 5 free ads for today.'
-          : 'Ad unavailable. Try again later.');
+          : 'Reward failed. Please try again.');
     }
     if (mounted) setState(() => _adLoading = false);
   }
@@ -72,6 +96,7 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
   @override
   Widget build(BuildContext context) {
     final energy = ref.watch(energyStateProvider);
+    final adReady = ref.watch(adServiceProvider).isReady;
 
     return Container(
       decoration: const BoxDecoration(
@@ -99,13 +124,14 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
 
           // Option 1 — Rewarded ad
           GBtn(
-            gradient: greenGrad,
+            gradient: adReady ? greenGrad : darkGrad,
             width: double.infinity,
-            onPressed: _adLoading ? null : _claimAdReward,
+            onPressed: (_adLoading || !adReady) ? null : _claimAdReward,
             child: _adLoading
                 ? const SizedBox(width: 20, height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2, color: textCol))
-                : Text('Watch an Ad · Get 2 ⚡ free',
+                : Text(
+                    adReady ? 'Watch an Ad · Get 2 ⚡ free' : 'Ad loading…',
                     style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
           const SizedBox(height: 10),

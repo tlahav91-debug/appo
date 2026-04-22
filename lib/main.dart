@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
@@ -20,6 +21,7 @@ Future<void> main() async {
     anonKey: supabaseAnonKey,
   );
 
+  await MobileAds.instance.initialize();
   await Purchases.configure(PurchasesConfiguration(revenuecatKey));
 
   runApp(const ProviderScope(child: DramaPlayApp()));
