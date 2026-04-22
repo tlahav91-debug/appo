@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
+import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/presentation/home_screen.dart';
 import '../../features/profile/presentation/journey_screen.dart';
 import '../../features/profile/presentation/events_screen.dart';
 import '../../features/profile/presentation/leaderboard_screen.dart';
 import '../../features/profile/presentation/rewards_screen.dart';
+import '../../features/shop/application/starter_pack_provider.dart';
+import '../../shared/widgets/starter_pack_sheet.dart';
 
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   int _selectedIndex = 0;
+  bool _starterPackOffered = false;
 
   static const _screens = [
     HomeScreen(),
@@ -35,6 +40,20 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = ref.watch(profileProvider).valueOrNull;
+
+    if (profile != null && !_starterPackOffered) {
+      _starterPackOffered = true;
+      if (profile.starterPackPurchasedAt == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final service = ref.read(starterPackServiceProvider);
+          if (!await service.isDismissed() && mounted) {
+            await StarterPackSheet.show(context, ref);
+          }
+        });
+      }
+    }
+
     return Scaffold(
       backgroundColor: bgDeep,
       body: IndexedStack(

@@ -10,6 +10,7 @@ class Profile {
   final int currentEnergy;
   final DateTime lastRefillAt;
   final DateTime? lastPassBonusAt;
+  final DateTime? starterPackPurchasedAt;
 
   const Profile({
     required this.id,
@@ -23,6 +24,7 @@ class Profile {
     required this.currentEnergy,
     required this.lastRefillAt,
     this.lastPassBonusAt,
+    this.starterPackPurchasedAt,
   });
 
   String get displayName => username ?? 'Player';
@@ -43,6 +45,9 @@ class Profile {
         lastPassBonusAt: json['last_pass_bonus_at'] != null
             ? DateTime.parse(json['last_pass_bonus_at'] as String).toUtc()
             : null,
+        starterPackPurchasedAt: json['starter_pack_purchased_at'] != null
+            ? DateTime.parse(json['starter_pack_purchased_at'] as String).toUtc()
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +62,7 @@ class Profile {
         'current_energy': currentEnergy,
         'last_refill_at': lastRefillAt.toIso8601String(),
         'last_pass_bonus_at': lastPassBonusAt?.toIso8601String(),
+        'starter_pack_purchased_at': starterPackPurchasedAt?.toIso8601String(),
       };
 
   Profile copyWith({
@@ -70,6 +76,7 @@ class Profile {
     int? currentEnergy,
     DateTime? lastRefillAt,
     DateTime? lastPassBonusAt,
+    DateTime? starterPackPurchasedAt,
   }) =>
       Profile(
         id: id,
@@ -83,6 +90,7 @@ class Profile {
         currentEnergy: currentEnergy ?? this.currentEnergy,
         lastRefillAt: lastRefillAt ?? this.lastRefillAt,
         lastPassBonusAt: lastPassBonusAt ?? this.lastPassBonusAt,
+        starterPackPurchasedAt: starterPackPurchasedAt ?? this.starterPackPurchasedAt,
       );
 
   bool get passBonusClaimableToday {
