@@ -7,6 +7,8 @@ class Profile {
   final int coins;
   final int gems;
   final bool dramaPassActive;
+  final int currentEnergy;
+  final DateTime lastRefillAt;
 
   const Profile({
     required this.id,
@@ -17,6 +19,8 @@ class Profile {
     required this.coins,
     required this.gems,
     required this.dramaPassActive,
+    required this.currentEnergy,
+    required this.lastRefillAt,
   });
 
   String get displayName => username ?? 'Player';
@@ -30,6 +34,10 @@ class Profile {
         coins: (json['coins'] as num?)?.toInt() ?? 0,
         gems: (json['gems'] as num?)?.toInt() ?? 0,
         dramaPassActive: json['drama_pass_active'] as bool? ?? false,
+        currentEnergy: (json['current_energy'] as num?)?.toInt() ?? 5,
+        lastRefillAt: json['last_refill_at'] != null
+            ? DateTime.parse(json['last_refill_at'] as String).toUtc()
+            : DateTime.now().toUtc(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +49,8 @@ class Profile {
         'coins': coins,
         'gems': gems,
         'drama_pass_active': dramaPassActive,
+        'current_energy': currentEnergy,
+        'last_refill_at': lastRefillAt.toIso8601String(),
       };
 
   Profile copyWith({
@@ -51,6 +61,8 @@ class Profile {
     int? coins,
     int? gems,
     bool? dramaPassActive,
+    int? currentEnergy,
+    DateTime? lastRefillAt,
   }) =>
       Profile(
         id: id,
@@ -61,5 +73,7 @@ class Profile {
         coins: coins ?? this.coins,
         gems: gems ?? this.gems,
         dramaPassActive: dramaPassActive ?? this.dramaPassActive,
+        currentEnergy: currentEnergy ?? this.currentEnergy,
+        lastRefillAt: lastRefillAt ?? this.lastRefillAt,
       );
 }
