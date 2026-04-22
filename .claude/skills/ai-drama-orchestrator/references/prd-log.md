@@ -2,4 +2,4 @@
 
 | ID | Feature | Status | Approved | Notes |
 |----|---------|--------|----------|-------|
-| PRD-001 | Auth + Player Profile | IN PROGRESS | 2026-04-22 | Revision 1 approved — persistent session, local cache |
+| PRD-001 | Auth + Player Profile | CLOSED | 2026-04-22 | QA PASS after 1 fix cycle. 4 medium/low bugs deferred to backlog. |
