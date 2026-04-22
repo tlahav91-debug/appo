@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/profile/application/profile_provider.dart';
@@ -63,6 +64,27 @@ class _HudContent extends StatelessWidget {
               fontSize: 13,
             ),
           ),
+          if (profile.dramaPassActive) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => context.push('/pass'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  gradient: purpleGrad,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'PASS',
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 9,
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(width: 6),
           // XP bar
           Container(

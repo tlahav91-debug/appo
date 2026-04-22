@@ -25,7 +25,6 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    // Link RevenueCat identity to Supabase user ID
     await Purchases.logIn(userId);
 
     // Serve cache immediately while fetching live data
@@ -36,15 +35,17 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
           final live = await repo.fetchProfile(userId);
           state = AsyncValue.data(live);
           _subscribeRealtime(userId, repo);
-        } catch (_) {
-          // Keep cached value on fetch failure
-        }
+          _syncPassEntitlement(userId);
+          _claimDailyPassBonusIfEligible(live);
+        } catch (_) {}
       });
       return cached;
     }
 
     final live = await repo.fetchProfile(userId);
     _subscribeRealtime(userId, repo);
+    _syncPassEntitlement(userId);
+    _claimDailyPassBonusIfEligible(live);
     return live;
   }
 
@@ -60,6 +61,31 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
           repo.cacheProfile(updated);
           state = AsyncValue.data(updated);
         });
+  }
+
+  // Reconcile drama_pass_active with RevenueCat entitlement truth
+  Future<void> _syncPassEntitlement(String userId) async {
+    try {
+      final info = await Purchases.getCustomerInfo();
+      final rcActive = info.entitlements.active.containsKey('drama_pass');
+      final dbActive = state.valueOrNull?.dramaPassActive ?? false;
+      if (rcActive != dbActive) {
+        await Supabase.instance.client
+            .from('profiles')
+            .update({'drama_pass_active': rcActive})
+            .eq('id', userId);
+      }
+    } catch (_) {}
+  }
+
+  // Fire-and-forget daily pass bonus; Realtime stream picks up the energy change
+  void _claimDailyPassBonusIfEligible(Profile profile) {
+    if (!profile.passBonusClaimableToday) return;
+    Future.microtask(() async {
+      try {
+        await Supabase.instance.client.functions.invoke('claim-pass-bonus', body: {});
+      } catch (_) {}
+    });
   }
 
   Future<void> signOut() async {

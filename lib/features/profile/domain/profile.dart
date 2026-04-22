@@ -9,6 +9,7 @@ class Profile {
   final bool dramaPassActive;
   final int currentEnergy;
   final DateTime lastRefillAt;
+  final DateTime? lastPassBonusAt;
 
   const Profile({
     required this.id,
@@ -21,6 +22,7 @@ class Profile {
     required this.dramaPassActive,
     required this.currentEnergy,
     required this.lastRefillAt,
+    this.lastPassBonusAt,
   });
 
   String get displayName => username ?? 'Player';
@@ -38,6 +40,9 @@ class Profile {
         lastRefillAt: json['last_refill_at'] != null
             ? DateTime.parse(json['last_refill_at'] as String).toUtc()
             : DateTime.now().toUtc(),
+        lastPassBonusAt: json['last_pass_bonus_at'] != null
+            ? DateTime.parse(json['last_pass_bonus_at'] as String).toUtc()
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,6 +56,7 @@ class Profile {
         'drama_pass_active': dramaPassActive,
         'current_energy': currentEnergy,
         'last_refill_at': lastRefillAt.toIso8601String(),
+        'last_pass_bonus_at': lastPassBonusAt?.toIso8601String(),
       };
 
   Profile copyWith({
@@ -63,6 +69,7 @@ class Profile {
     bool? dramaPassActive,
     int? currentEnergy,
     DateTime? lastRefillAt,
+    DateTime? lastPassBonusAt,
   }) =>
       Profile(
         id: id,
@@ -75,5 +82,15 @@ class Profile {
         dramaPassActive: dramaPassActive ?? this.dramaPassActive,
         currentEnergy: currentEnergy ?? this.currentEnergy,
         lastRefillAt: lastRefillAt ?? this.lastRefillAt,
+        lastPassBonusAt: lastPassBonusAt ?? this.lastPassBonusAt,
       );
+
+  bool get passBonusClaimableToday {
+    if (!dramaPassActive) return false;
+    if (lastPassBonusAt == null) return true;
+    final today = DateTime.now().toUtc();
+    return lastPassBonusAt!.year != today.year ||
+        lastPassBonusAt!.month != today.month ||
+        lastPassBonusAt!.day != today.day;
+  }
 }

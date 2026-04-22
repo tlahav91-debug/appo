@@ -1,4 +1,4 @@
-// [EDGE-FN] revenuecat-webhook — credits gems on IAP purchase events from RevenueCat
+// [EDGE-FN] revenuecat-webhook — handles IAP and subscription events from RevenueCat
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -9,15 +9,15 @@ const GEM_PACKS: Record<string, number> = {
   "drama_gems_3000": 3000,
 };
 
-const CREDIT_EVENTS = new Set([
-  "INITIAL_PURCHASE",
-  "NON_SUBSCRIPTION_PURCHASE",
-]);
+const DRAMA_PASS_PRODUCT = "drama_pass_monthly";
+
+const GEM_CREDIT_EVENTS  = new Set(["INITIAL_PURCHASE", "NON_SUBSCRIPTION_PURCHASE"]);
+const PASS_ACTIVATE_EVENTS = new Set(["INITIAL_PURCHASE", "RENEWAL"]);
+const PASS_DEACTIVATE_EVENTS = new Set(["EXPIRATION"]);
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  // Verify RevenueCat webhook secret
   const authHeader = req.headers.get("Authorization");
   const webhookSecret = Deno.env.get("REVENUECAT_WEBHOOK_SECRET");
   if (!webhookSecret || authHeader !== `Bearer ${webhookSecret}`) {
@@ -38,19 +38,8 @@ Deno.serve(async (req: Request) => {
   if (!event) return json({ error: "Missing event" }, 400);
 
   const { type, app_user_id, product_id, transaction_id } = event;
-
-  // Only credit on purchase events
-  if (!type || !CREDIT_EVENTS.has(type)) {
-    return json({ status: "ignored", type }, 200);
-  }
-
-  if (!app_user_id || !product_id || !transaction_id) {
+  if (!type || !app_user_id || !product_id) {
     return json({ error: "Missing required event fields" }, 400);
-  }
-
-  const gemAmount = GEM_PACKS[product_id];
-  if (!gemAmount) {
-    return json({ error: `Unknown product: ${product_id}` }, 400);
   }
 
   const supabase = createClient(
@@ -58,7 +47,41 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Idempotency: check if transaction already processed
+  // ── Drama Pass subscription ──────────────────────────────────────────────────
+  if (product_id === DRAMA_PASS_PRODUCT) {
+    if (PASS_ACTIVATE_EVENTS.has(type)) {
+      await supabase
+        .from("profiles")
+        .update({ drama_pass_active: true })
+        .eq("id", app_user_id);
+      return json({ status: "ok", drama_pass_active: true }, 200);
+    }
+    if (PASS_DEACTIVATE_EVENTS.has(type)) {
+      await supabase
+        .from("profiles")
+        .update({ drama_pass_active: false })
+        .eq("id", app_user_id);
+      return json({ status: "ok", drama_pass_active: false }, 200);
+    }
+    // CANCELLATION etc. — let expiration handle the deactivation
+    return json({ status: "ignored", type }, 200);
+  }
+
+  // ── Gem pack one-time purchase ───────────────────────────────────────────────
+  const gemAmount = GEM_PACKS[product_id];
+  if (!gemAmount) {
+    return json({ status: "ignored", reason: "unknown_product", product_id }, 200);
+  }
+
+  if (!GEM_CREDIT_EVENTS.has(type)) {
+    return json({ status: "ignored", type }, 200);
+  }
+
+  if (!transaction_id) {
+    return json({ error: "Missing transaction_id" }, 400);
+  }
+
+  // Idempotency check
   const { data: existing } = await supabase
     .from("currency_ledger")
     .select("id, balance_after")
@@ -69,7 +92,6 @@ Deno.serve(async (req: Request) => {
     return json({ status: "already_processed", balance_after: existing.balance_after }, 200);
   }
 
-  // Fetch current gem balance
   const { data: profile } = await supabase
     .from("profiles")
     .select("gems")
@@ -80,7 +102,6 @@ Deno.serve(async (req: Request) => {
 
   const newBalance = profile.gems + gemAmount;
 
-  // Insert ledger row
   const { error: ledgerErr } = await supabase.from("currency_ledger").insert({
     user_id: app_user_id,
     currency_type: "gems",
@@ -92,7 +113,6 @@ Deno.serve(async (req: Request) => {
   });
 
   if (ledgerErr) {
-    // Race: another webhook beat us; return the winning row
     const { data: raceRow } = await supabase
       .from("currency_ledger")
       .select("balance_after")
@@ -101,7 +121,6 @@ Deno.serve(async (req: Request) => {
     return json({ status: "ok", balance_after: raceRow?.balance_after ?? newBalance }, 200);
   }
 
-  // Update profile gems cache
   await supabase
     .from("profiles")
     .update({ gems: newBalance })
