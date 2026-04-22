@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/domain/profile.dart';
+import 'currency_display.dart';
 
 class HUD extends ConsumerWidget implements PreferredSizeWidget {
   const HUD({super.key});
@@ -84,28 +85,10 @@ class _HudContent extends StatelessWidget {
           ),
           const Spacer(),
           // Coins
-          const Text('🪙', style: TextStyle(fontSize: 14)),
-          const SizedBox(width: 3),
-          Text(
-            _fmt(profile.coins),
-            style: GoogleFonts.nunito(
-              color: gold,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
+          CurrencyDisplay(amount: profile.coins, emoji: '🪙', color: gold),
           const SizedBox(width: 12),
           // Gems
-          const Text('💎', style: TextStyle(fontSize: 14)),
-          const SizedBox(width: 3),
-          Text(
-            _fmt(profile.gems),
-            style: GoogleFonts.nunito(
-              color: cyan,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
+          CurrencyDisplay(amount: profile.gems, emoji: '💎', color: cyan),
           const SizedBox(width: 12),
           // Settings
           GestureDetector(
@@ -116,8 +99,6 @@ class _HudContent extends StatelessWidget {
       ),
     );
   }
-
-  String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}k' : '$n';
 
   void _showSettings(BuildContext context) {
     showModalBottomSheet(
