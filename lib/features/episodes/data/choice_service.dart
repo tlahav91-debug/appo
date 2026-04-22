@@ -11,6 +11,8 @@ class RecordChoiceResult {
   final String? choiceId;
   final int coinsEarned;
   final int newBalance;
+  final String? collectibleId;
+  final bool collectibleGranted;
   final bool idempotent;
   final String? errorCode;
   final String? error;
@@ -20,6 +22,8 @@ class RecordChoiceResult {
     this.choiceId,
     this.coinsEarned = 0,
     this.newBalance = 0,
+    this.collectibleId,
+    this.collectibleGranted = false,
     this.idempotent = false,
     this.errorCode,
     this.error,
@@ -30,6 +34,8 @@ class RecordChoiceResult {
         choiceId: d['choice_id'] as String?,
         coinsEarned: (d['coins_earned'] as num).toInt(),
         newBalance: (d['new_balance'] as num).toInt(),
+        collectibleId: d['collectible_id'] as String?,
+        collectibleGranted: d['collectible_granted'] == true,
         idempotent: d['idempotent'] == true,
       );
 

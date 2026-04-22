@@ -19,7 +19,7 @@ class EpisodeRepository {
   Future<List<EpisodeChoice>> fetchChoicesForEpisode(String episodeId) async {
     final data = await _client
         .from('episode_choices')
-        .select()
+        .select('*, collectibles(id, name, rarity)')
         .eq('episode_id', episodeId);
     return (data as List).map((e) => EpisodeChoice.fromJson(e as Map<String, dynamic>)).toList();
   }

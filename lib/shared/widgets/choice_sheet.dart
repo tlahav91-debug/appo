@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
+import '../../features/collectibles/application/album_provider.dart';
 import '../../features/episodes/data/choice_service.dart';
 import '../../features/episodes/domain/episode_choice.dart';
 import '../../features/profile/application/profile_provider.dart';
 import 'coin_toast.dart';
+import 'collectible_toast.dart';
 
 class ChoiceSheet extends ConsumerStatefulWidget {
   final String episodeId;
@@ -42,8 +44,7 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
   @override
   void initState() {
     super.initState();
-    _idempotencyKey =
-        ref.read(choiceServiceProvider).generateIdempotencyKey();
+    _idempotencyKey = ref.read(choiceServiceProvider).generateIdempotencyKey();
   }
 
   Future<void> _onChoiceTap(EpisodeChoice choice) async {
@@ -60,8 +61,19 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
 
     if (result.success) {
       ref.invalidate(profileProvider);
+      if (result.collectibleGranted) {
+        ref.invalidate(ownedCollectibleIdsProvider);
+      }
       Navigator.pop(context);
       CoinToast.show(context, result.coinsEarned);
+      if (result.collectibleGranted && choice.collectibleName != null) {
+        // Slight delay so coin toast appears first
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (context.mounted) {
+            CollectibleToast.show(context, choice.collectibleName!);
+          }
+        });
+      }
     } else {
       setState(() {
         _feedback = result.errorCode == 'EPISODE_LOCKED'
@@ -164,26 +176,39 @@ class _ChoiceButton extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2, color: textCol),
                   ),
                 )
-              : Row(
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        choice.label,
-                        style: GoogleFonts.nunito(
-                          color: textCol,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+                    Text(
+                      choice.label,
+                      style: GoogleFonts.nunito(
+                        color: textCol,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '+${choice.rewardCoins} 🪙',
-                      style: GoogleFonts.nunito(
-                        color: gold,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '+${choice.rewardCoins} 🪙',
+                          style: GoogleFonts.nunito(
+                            color: gold,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (choice.collectibleName != null) ...[
+                          Text(
+                            '  ·  🃏 ${choice.collectibleName}',
+                            style: GoogleFonts.nunito(
+                              color: purple,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

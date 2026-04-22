@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/collectibles/presentation/album_screen.dart';
 import '../../features/episodes/domain/episode.dart';
 import '../../features/episodes/presentation/series_screen.dart';
 import '../../features/episodes/presentation/episode_detail_screen.dart';
@@ -38,6 +39,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/series/:seriesId/episode/:episodeId',
         builder: (_, state) => EpisodeDetailScreen(
           episode: state.extra as Episode,
+        ),
+      ),
+      GoRoute(
+        path: '/album/:seriesId',
+        builder: (_, state) => AlbumScreen(
+          seriesId: state.pathParameters['seriesId']!,
         ),
       ),
     ],

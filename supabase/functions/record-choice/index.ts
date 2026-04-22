@@ -1,4 +1,4 @@
-// [EDGE-FN] record-choice — records a user's episode choice and credits coins
+// [EDGE-FN] record-choice — records a user's episode choice, credits coins, mints collectible
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -40,14 +40,16 @@ Deno.serve(async (req: Request) => {
       choice_id,
       coins_earned: existingLedger.delta,
       new_balance: existingLedger.balance_after,
+      collectible_id: null,
+      collectible_granted: false,
       idempotent: true,
     }, 200);
   }
 
-  // Verify the choice belongs to the episode and fetch reward amount
+  // Verify the choice belongs to the episode and fetch reward + collectible
   const { data: choice } = await supabase
     .from("episode_choices")
-    .select("id, label, reward_coins, episode_id")
+    .select("id, label, reward_coins, episode_id, collectible_id")
     .eq("id", choice_id)
     .eq("episode_id", episode_id)
     .maybeSingle();
@@ -77,13 +79,42 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Insert user_episode_choices — ignore conflict (idempotent choice recording)
-  const { error: choiceInsertErr } = await supabase
+  // Insert user_episode_choices — capture ID for collectible source link
+  const { data: choiceRow, error: choiceInsertErr } = await supabase
     .from("user_episode_choices")
-    .insert({ user_id: userId, episode_id, choice_id });
+    .insert({ user_id: userId, episode_id, choice_id })
+    .select("id")
+    .maybeSingle();
 
-  if (choiceInsertErr && !choiceInsertErr.message.includes("duplicate")) {
-    return json({ error: "Failed to record choice" }, 500);
+  let userChoiceId: string | null = choiceRow?.id ?? null;
+  if (choiceInsertErr) {
+    if (!choiceInsertErr.message.includes("duplicate")) {
+      return json({ error: "Failed to record choice" }, 500);
+    }
+    // Already recorded — fetch existing row ID
+    const { data: existing } = await supabase
+      .from("user_episode_choices")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("episode_id", episode_id)
+      .maybeSingle();
+    userChoiceId = existing?.id ?? null;
+  }
+
+  // Mint collectible (if choice has one) — ON CONFLICT ignore (already owned)
+  let collectibleGranted = false;
+  if (choice.collectible_id) {
+    const { error: collectErr } = await supabase.from("user_collectibles").insert({
+      user_id: userId,
+      collectible_id: choice.collectible_id,
+      source_choice_id: userChoiceId,
+    });
+    // error code 23505 = unique_violation (user already owns it)
+    collectibleGranted = !collectErr || !collectErr.code?.includes("23505");
+    if (collectErr && !collectErr.code?.includes("23505")) {
+      // Non-unique error — log but don't fail the whole request
+      console.error("collectible insert error:", collectErr.message);
+    }
   }
 
   // Fetch current coin balance
@@ -110,7 +141,6 @@ Deno.serve(async (req: Request) => {
   });
 
   if (ledgerErr) {
-    // Unique violation — concurrent call won; return that row
     const { data: raceRow } = await supabase
       .from("currency_ledger")
       .select("balance_after, delta")
@@ -120,6 +150,8 @@ Deno.serve(async (req: Request) => {
       choice_id,
       coins_earned: raceRow?.delta ?? reward,
       new_balance: raceRow?.balance_after ?? newBalance,
+      collectible_id: choice.collectible_id ?? null,
+      collectible_granted: false,
       idempotent: true,
     }, 200);
   }
@@ -130,7 +162,13 @@ Deno.serve(async (req: Request) => {
     .update({ coins: newBalance })
     .eq("id", userId);
 
-  return json({ choice_id, coins_earned: reward, new_balance: newBalance }, 200);
+  return json({
+    choice_id,
+    coins_earned: reward,
+    new_balance: newBalance,
+    collectible_id: choice.collectible_id ?? null,
+    collectible_granted: collectibleGranted,
+  }, 200);
 });
 
 function json(data: unknown, status = 200): Response {
