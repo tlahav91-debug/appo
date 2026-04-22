@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../features/auth/presentation/splash_screen.dart';
+import '../../features/auth/presentation/auth_screen.dart';
+import 'app_shell.dart';
+
+final routerProvider = Provider<GoRouter>((ref) {
+  return GoRouter(
+    initialLocation: '/',
+    redirect: (context, state) {
+      final session = Supabase.instance.client.auth.currentSession;
+      final isAuth = session != null;
+      final onAuth = state.matchedLocation == '/auth';
+      final onSplash = state.matchedLocation == '/';
+
+      if (onSplash) return isAuth ? '/home' : '/auth';
+      if (!isAuth && !onAuth) return '/auth';
+      if (isAuth && onAuth) return '/home';
+      return null;
+    },
+    refreshListenable: _AuthStateNotifier(),
+    routes: [
+      GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
+      GoRoute(path: '/home', builder: (_, __) => const AppShell()),
+    ],
+  );
+});
+
+class _AuthStateNotifier extends ChangeNotifier {
+  _AuthStateNotifier() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+      notifyListeners();
+    });
+  }
+}

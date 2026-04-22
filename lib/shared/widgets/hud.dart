@@ -1,0 +1,179 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/tokens.dart';
+import '../../features/profile/application/profile_provider.dart';
+import '../../features/profile/domain/profile.dart';
+import 'g_btn.dart';
+
+class HUD extends ConsumerWidget implements PreferredSizeWidget {
+  const HUD({super.key});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(56);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileProvider);
+
+    return profileAsync.when(
+      data: (p) => _HudContent(profile: p, ref: ref),
+      loading: () => profileAsync.hasValue
+          ? _HudContent(profile: profileAsync.value!, ref: ref)
+          : const _HudSkeleton(),
+      error: (_, __) => const _HudSkeleton(),
+    );
+  }
+}
+
+class _HudContent extends StatelessWidget {
+  final Profile profile;
+  final WidgetRef ref;
+
+  const _HudContent({required this.profile, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      color: bgDeep.withOpacity(0.95),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: cardHi,
+              shape: BoxShape.circle,
+              border: Border.all(color: borderHi, width: 1.5),
+            ),
+            child: profile.avatarUrl != null
+                ? ClipOval(child: Image.network(profile.avatarUrl!, fit: BoxFit.cover))
+                : const Icon(Icons.person, color: textSec, size: 20),
+          ),
+          const SizedBox(width: 8),
+          // Level badge
+          Text(
+            'Lv.${profile.fanLevel}',
+            style: const TextStyle(
+              color: gold,
+              fontFamily: 'Nunito',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 6),
+          // XP bar
+          Container(
+            width: 80,
+            height: 6,
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: (profile.xp / 100).clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: purpleGrad,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          // Coins
+          const Text('🪙', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 3),
+          Text(
+            _fmt(profile.coins),
+            style: const TextStyle(
+              color: gold,
+              fontFamily: 'Nunito',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Gems
+          const Text('💎', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 3),
+          Text(
+            _fmt(profile.gems),
+            style: const TextStyle(
+              color: cyan,
+              fontFamily: 'Nunito',
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Settings
+          GestureDetector(
+            onTap: () => _showSettings(context),
+            child: const Icon(Icons.settings_outlined, color: textSec, size: 22),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}k' : '$n';
+
+  void _showSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: borderHi,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout, color: pink),
+              title: const Text('Sign out',
+                  style: TextStyle(color: textCol, fontFamily: 'Nunito', fontWeight: FontWeight.w700)),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(profileProvider.notifier).signOut();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HudSkeleton extends StatelessWidget {
+  const _HudSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      color: bgDeep.withOpacity(0.95),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Container(width: 36, height: 36, decoration: const BoxDecoration(color: cardHi, shape: BoxShape.circle)),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+}
