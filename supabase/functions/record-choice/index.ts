@@ -87,11 +87,14 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   let userChoiceId: string | null = choiceRow?.id ?? null;
+  // H-1 fix: track whether choice was already recorded so race score isn't double-counted
+  let choiceAlreadyRecorded = false;
   if (choiceInsertErr) {
     if (!choiceInsertErr.message.includes("duplicate")) {
       return json({ error: "Failed to record choice" }, 500);
     }
-    // Already recorded — fetch existing row ID
+    // Already recorded — fetch existing row ID; skip race score increment
+    choiceAlreadyRecorded = true;
     const { data: existing } = await supabase
       .from("user_episode_choices")
       .select("id")
@@ -109,8 +112,8 @@ Deno.serve(async (req: Request) => {
       collectible_id: choice.collectible_id,
       source_choice_id: userChoiceId,
     });
-    // error code 23505 = unique_violation (user already owns it)
-    collectibleGranted = !collectErr || !collectErr.code?.includes("23505");
+    // L-4 fix: granted only on clean insert (null error)
+    collectibleGranted = collectErr == null;
     if (collectErr && !collectErr.code?.includes("23505")) {
       // Non-unique error — log but don't fail the whole request
       console.error("collectible insert error:", collectErr.message);
@@ -162,8 +165,8 @@ Deno.serve(async (req: Request) => {
     .update({ coins: newBalance })
     .eq("id", userId);
 
-  // Increment race score — fire-and-forget, never fail the request
-  if (episode.series_id) {
+  // Increment race score — only on first-time choice, fire-and-forget
+  if (episode.series_id && !choiceAlreadyRecorded) {
     await supabase.rpc("increment_race_score", {
       p_user_id: userId,
       p_series_id: episode.series_id,

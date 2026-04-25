@@ -46,7 +46,8 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
     final raceAsync = ref.watch(raceByIdProvider(widget.raceId));
     final leaderboardAsync = ref.watch(raceLeaderboardProvider(widget.raceId));
     final participantAsync = ref.watch(raceParticipantProvider(widget.raceId));
-    final joinAsync = ref.watch(raceJoinProvider);
+    // M-5 fix: family provider — one notifier per race
+    final joinAsync = ref.watch(raceJoinProvider(widget.raceId));
     final myId = Supabase.instance.client.auth.currentUser?.id;
 
     return Scaffold(
@@ -63,9 +64,13 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
             );
           }
 
-          // Start countdown once
+          // H-4 fix: set _timeRemaining synchronously so _CountdownBadge
+          // never flashes "Race Ended" on the first frame
           if (_countdownTimer == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) => _startCountdown(race));
+            _timeRemaining = race.timeRemaining;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _startCountdown(race);
+            });
           }
 
           return CustomScrollView(
@@ -130,7 +135,7 @@ class _RaceScreenState extends ConsumerState<RaceScreen> {
                       child: GestureDetector(
                         onTap: joinAsync.isLoading
                             ? null
-                            : () => ref.read(raceJoinProvider.notifier).join(widget.raceId),
+                            : () => ref.read(raceJoinProvider(widget.raceId).notifier).join(),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(

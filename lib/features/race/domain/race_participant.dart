@@ -27,7 +27,10 @@ class RaceParticipant {
       episodesWatched: (json['episodes_watched'] as num?)?.toInt() ?? 0,
       rank: (json['rank'] as num?)?.toInt(),
       joinedAt: DateTime.parse(json['joined_at'] as String).toUtc(),
-      username: profile?['username'] as String?,
+      // L-2 fix: treat empty string as null so fallback displayName is used
+      username: (profile?['username'] as String?)?.isEmpty == true
+          ? null
+          : profile?['username'] as String?,
       avatarUrl: profile?['avatar_url'] as String?,
     );
   }

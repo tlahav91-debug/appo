@@ -6,36 +6,38 @@ import '../domain/race_participant.dart';
 
 final raceRepositoryProvider = Provider<RaceRepository>((_) => RaceRepository());
 
+// H-2 fix: ref.watch so provider rebuilds if repository ever changes
 final activeRaceProvider = FutureProvider.family<Race?, String>((ref, seriesId) {
-  return ref.read(raceRepositoryProvider).fetchActiveRaceForSeries(seriesId);
+  return ref.watch(raceRepositoryProvider).fetchActiveRaceForSeries(seriesId);
 });
 
 final raceByIdProvider = FutureProvider.family<Race?, String>((ref, raceId) {
-  return ref.read(raceRepositoryProvider).fetchRaceById(raceId);
+  return ref.watch(raceRepositoryProvider).fetchRaceById(raceId);
 });
 
 final raceLeaderboardProvider =
     StreamProvider.family<List<RaceParticipant>, String>((ref, raceId) {
-  return ref.read(raceRepositoryProvider).leaderboardStream(raceId);
+  return ref.watch(raceRepositoryProvider).leaderboardStream(raceId);
 });
 
 final raceParticipantProvider =
     FutureProvider.family<bool, String>((ref, raceId) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
   if (userId == null) return false;
-  return ref.read(raceRepositoryProvider).isParticipant(raceId, userId);
+  return ref.watch(raceRepositoryProvider).isParticipant(raceId, userId);
 });
 
-class RaceJoinNotifier extends AutoDisposeAsyncNotifier<void> {
+// M-5 fix: family so each race gets its own join notifier
+class RaceJoinNotifier extends AutoDisposeFamilyAsyncNotifier<void, String> {
   @override
-  Future<void> build() async {}
+  Future<void> build(String arg) async {}
 
-  Future<void> join(String raceId) async {
+  Future<void> join() async {
     state = const AsyncValue.loading();
     try {
-      await ref.read(raceRepositoryProvider).joinRace(raceId);
-      ref.invalidate(raceParticipantProvider(raceId));
-      ref.invalidate(raceLeaderboardProvider(raceId));
+      await ref.read(raceRepositoryProvider).joinRace(arg);
+      ref.invalidate(raceParticipantProvider(arg));
+      ref.invalidate(raceLeaderboardProvider(arg));
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -44,4 +46,6 @@ class RaceJoinNotifier extends AutoDisposeAsyncNotifier<void> {
 }
 
 final raceJoinProvider =
-    AsyncNotifierProvider.autoDispose<RaceJoinNotifier, void>(RaceJoinNotifier.new);
+    AsyncNotifierProvider.autoDispose.family<RaceJoinNotifier, void, String>(
+  RaceJoinNotifier.new,
+);

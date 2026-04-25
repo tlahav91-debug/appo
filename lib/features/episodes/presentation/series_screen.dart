@@ -58,7 +58,7 @@ class _EpisodeList extends ConsumerWidget {
       itemCount: episodes.length + (race != null ? 1 : 0),
       itemBuilder: (context, index) {
         if (race != null && index == 0) {
-          return _RaceBanner(race: race);
+          return _RaceBanner(race: race, ref: ref);
         }
         final episode = episodes[race != null ? index - 1 : index];
         return _EpisodeRow(episode: episode);
@@ -131,13 +131,17 @@ class _EpisodeRow extends ConsumerWidget {
   }
 }
 
-class _RaceBanner extends StatelessWidget {
+// H-3 fix: ConsumerWidget so it can check participation status for correct subtitle
+class _RaceBanner extends ConsumerWidget {
   final Race race;
+  final WidgetRef ref;
 
-  const _RaceBanner({required this.race});
+  const _RaceBanner({required this.race, required this.ref});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef widgetRef) {
+    final isParticipant = widgetRef.watch(raceParticipantProvider(race.id)).valueOrNull ?? false;
+
     return GestureDetector(
       onTap: () => context.push('/race/${race.id}'),
       child: Container(
@@ -164,7 +168,9 @@ class _RaceBanner extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Drama Sprint active · tap to join',
+                    isParticipant
+                        ? 'You\'re racing · tap to view leaderboard'
+                        : 'Drama Sprint active · tap to join',
                     style: GoogleFonts.sora(
                       color: textSec,
                       fontSize: 11,

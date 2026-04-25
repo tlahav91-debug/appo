@@ -34,6 +34,7 @@ class RaceRepository {
         .select('*, profiles(username, avatar_url)')
         .eq('race_id', raceId)
         .order('episodes_watched', ascending: false)
+        .order('joined_at') // tiebreaker: earlier joiner ranks higher
         .limit(50);
     return rows.map<RaceParticipant>(RaceParticipant.fromJson).toList();
   }
@@ -44,21 +45,22 @@ class RaceRepository {
     final ctrl = StreamController<void>.broadcast();
     final channel = _db.channel('race_lb_$raceId');
 
-    channel
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'race_participants',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'race_id',
-            value: raceId,
-          ),
-          callback: (_) => ctrl.add(null),
-        )
-        .subscribe();
-
+    // C-3 fix: subscribe inside try so finally always cleans up
     try {
+      channel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'race_participants',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'race_id',
+              value: raceId,
+            ),
+            callback: (_) => ctrl.add(null),
+          )
+          .subscribe();
+
       await for (final _ in ctrl.stream) {
         yield await fetchLeaderboard(raceId);
       }
@@ -78,7 +80,11 @@ class RaceRepository {
     return data != null;
   }
 
+  // C-2 fix: check FunctionResponse status and throw on failure
   Future<void> joinRace(String raceId) async {
-    await _db.functions.invoke('join-race', body: {'race_id': raceId});
+    final res = await _db.functions.invoke('join-race', body: {'race_id': raceId});
+    if (res.status != 200) {
+      throw Exception('Failed to join race (${res.status}): ${res.data}');
+    }
   }
 }
