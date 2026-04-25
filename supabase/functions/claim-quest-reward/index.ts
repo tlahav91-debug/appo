@@ -1,6 +1,9 @@
-// [EDGE-FN] claim-quest-reward — credit gems+coins for a completed lava quest (idempotent)
+// [EDGE-FN] claim-quest-reward — atomic quest reward via Postgres RPC (idempotent)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -13,7 +16,10 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
   const { quest_id } = body;
-  if (!quest_id) return json({ error: "quest_id required" }, 400);
+  // BUG-007: validate UUID format before hitting DB
+  if (!quest_id || !UUID_RE.test(quest_id)) {
+    return json({ error: "quest_id must be a valid UUID" }, 400);
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -22,80 +28,27 @@ Deno.serve(async (req: Request) => {
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
-  const userId = user.id;
 
-  // Fetch quest
-  const { data: quest } = await supabase
-    .from("lava_quests")
-    .select("id, reward_gems, reward_coins, ends_at, is_active")
-    .eq("id", quest_id)
-    .maybeSingle();
+  // BUG-001: single atomic RPC replaces non-atomic multi-step credit
+  const { data, error } = await supabase.rpc("claim_quest_reward", {
+    p_user_id: user.id,
+    p_quest_id: quest_id,
+  });
 
-  if (!quest || !quest.is_active) return json({ error: "Quest not found" }, 404);
-  if (new Date(quest.ends_at) <= new Date()) return json({ error: "Quest expired" }, 410);
+  if (error) return json({ error: "Internal error" }, 500);
 
-  // Fetch user progress
-  const { data: progress } = await supabase
-    .from("user_quest_progress")
-    .select("completed_at, reward_claimed_at")
-    .eq("user_id", userId)
-    .eq("quest_id", quest_id)
-    .maybeSingle();
+  const result = data as { error?: string; code?: number; idempotent?: boolean;
+                            gems_earned?: number; coins_earned?: number };
 
-  if (!progress?.completed_at) return json({ error: "Quest not completed" }, 403);
-
-  // Idempotent: already claimed
-  if (progress.reward_claimed_at) {
-    return json({ gems_earned: quest.reward_gems, coins_earned: quest.reward_coins, idempotent: true }, 200);
+  if (result.error) {
+    return json({ error: result.error }, result.code ?? 400);
   }
 
-  // Fetch current balances
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("gems, coins")
-    .eq("id", userId)
-    .single();
-
-  if (!profile) return json({ error: "Profile not found" }, 404);
-
-  const txId = `quest_${quest_id}_${userId}`;
-  const newGems = profile.gems + quest.reward_gems;
-  const newCoins = profile.coins + quest.reward_coins;
-
-  // Credit gems
-  await supabase.from("currency_ledger").insert({
-    user_id: userId,
-    currency_type: "gems",
-    delta: quest.reward_gems,
-    balance_after: newGems,
-    reason: "quest_reward",
-    idempotency_key: `${txId}_gems`,
-    reference_id: quest_id,
+  return json({
+    gems_earned: result.gems_earned,
+    coins_earned: result.coins_earned,
+    ...(result.idempotent ? { idempotent: true } : {}),
   });
-
-  // Credit coins
-  await supabase.from("currency_ledger").insert({
-    user_id: userId,
-    currency_type: "scrolls",
-    delta: quest.reward_coins,
-    balance_after: newCoins,
-    reason: "quest_reward",
-    idempotency_key: `${txId}_coins`,
-    reference_id: quest_id,
-  });
-
-  // Update profile balances + mark claimed atomically
-  await Promise.all([
-    supabase.from("profiles")
-      .update({ gems: newGems, coins: newCoins })
-      .eq("id", userId),
-    supabase.from("user_quest_progress")
-      .update({ reward_claimed_at: new Date().toISOString() })
-      .eq("user_id", userId)
-      .eq("quest_id", quest_id),
-  ]);
-
-  return json({ gems_earned: quest.reward_gems, coins_earned: quest.reward_coins });
 });
 
 function json(data: unknown, status = 200): Response {

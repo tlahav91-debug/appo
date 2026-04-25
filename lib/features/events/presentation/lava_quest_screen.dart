@@ -66,14 +66,18 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
     try {
       final result = await ref.read(questClaimProvider(widget.questId).notifier).claim();
       if (!mounted) return;
-      ref.invalidate(profileProvider);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          '🌋 Quest complete! +${result['gems_earned']} 💎  +${result['coins_earned']} 🪙',
-          style: GoogleFonts.sora(color: textCol),
-        ),
-        backgroundColor: lavaDim,
-      ));
+      // BUG-013: only credit profile + show toast on fresh claim, not idempotent repeat
+      final isIdempotent = result['idempotent'] == true;
+      if (!isIdempotent) {
+        ref.invalidate(profileProvider);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            '🌋 Quest complete! +${result['gems_earned']} 💎  +${result['coins_earned']} 🪙',
+            style: GoogleFonts.sora(color: textCol),
+          ),
+          backgroundColor: lavaDim,
+        ));
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -104,6 +108,8 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
 
           if (_countdownTimer == null) {
             _timeRemaining = quest.timeRemaining;
+            // BUG-008/BUG-012: always use postFrameCallback so animation and
+            // timer mutations never happen during the build phase
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 _startCountdown(quest);
@@ -111,7 +117,10 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
               }
             });
           } else {
-            _animateProgress(quest.progressFraction);
+            // BUG-012: defer progress animation to avoid forward() during build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _animateProgress(quest.progressFraction);
+            });
           }
 
           final h = _timeRemaining.inHours;
@@ -159,8 +168,9 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
                               color: lavaDim,
                               borderRadius: BorderRadius.circular(20),
                             ),
+                            // BUG-016: use _timeRemaining (ticking state) not stale quest snapshot
                             child: Text(
-                              quest.timeRemaining == Duration.zero
+                              _timeRemaining == Duration.zero
                                   ? 'Expired'
                                   : '⏱ $countdownLabel remaining',
                               style: GoogleFonts.sora(

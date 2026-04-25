@@ -107,7 +107,7 @@ class LavaQuestRepository {
     }
   }
 
-  Future<Map<String, int>> claimReward(String questId) async {
+  Future<Map<String, dynamic>> claimReward(String questId) async {
     final res = await _db.functions.invoke(
       'claim-quest-reward',
       body: {'quest_id': questId},
@@ -119,6 +119,7 @@ class LavaQuestRepository {
     return {
       'gems_earned': (data['gems_earned'] as num).toInt(),
       'coins_earned': (data['coins_earned'] as num).toInt(),
+      'idempotent': data['idempotent'] == true,
     };
   }
 }

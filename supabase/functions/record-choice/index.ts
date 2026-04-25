@@ -171,11 +171,11 @@ Deno.serve(async (req: Request) => {
       supabase.rpc("increment_race_score", {
         p_user_id: userId,
         p_series_id: episode.series_id,
-      }).catch(() => {/* no-op */}),
+      }).catch((e) => console.error("increment_race_score failed:", e)),
       supabase.rpc("increment_quest_progress", {
         p_user_id: userId,
         p_series_id: episode.series_id,
-      }).catch(() => {/* no-op */}),
+      }).catch((e) => console.error("increment_quest_progress failed:", e)),
     ]);
   }
 

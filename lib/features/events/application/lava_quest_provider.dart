@@ -9,15 +9,24 @@ final activeQuestsProvider = StreamProvider<List<LavaQuest>>((ref) {
   return ref.watch(lavaQuestRepositoryProvider).activeQuestsStream();
 });
 
-final questByIdProvider = FutureProvider.family<LavaQuest?, String>((ref, questId) {
-  return ref.watch(lavaQuestRepositoryProvider).fetchQuestById(questId);
+// BUG-006: derive from the live stream so progress updates automatically
+final questByIdProvider = Provider.family<AsyncValue<LavaQuest?>, String>((ref, questId) {
+  final streamValue = ref.watch(activeQuestsProvider);
+  return streamValue.when(
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+    data: (quests) {
+      final match = quests.where((q) => q.id == questId).firstOrNull;
+      return AsyncValue.data(match);
+    },
+  );
 });
 
 class QuestClaimNotifier extends AutoDisposeFamilyAsyncNotifier<void, String> {
   @override
   Future<void> build(String arg) async {}
 
-  Future<Map<String, int>> claim() async {
+  Future<Map<String, dynamic>> claim() async {
     state = const AsyncValue.loading();
     try {
       final result =
