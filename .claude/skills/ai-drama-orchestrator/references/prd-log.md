@@ -12,3 +12,4 @@
 | PRD-008 | AdMob Rewarded Ads | CLOSED | 2026-04-22 | QA PASS — AdService with Completer flow, credit gated on onUserEarnedReward. 0 bugs. |
 | PRD-009 | Season Pass (Drama Pass) | CLOSED | 2026-04-22 | QA PASS — subscription webhook, claim_pass_bonus RPC, RC entitlement sync, PASS HUD badge. 0 bugs. |
 | PRD-010 | Starter Pack Offer | CLOSED | 2026-04-22 | QA PASS — webhook credits gems+coins, one-time sheet shown from AppShell, dismiss/purchased guards. 0 bugs. |
+| PRD-011 | Series Race Leaderboard | CLOSED | 2026-04-25 | QA PASS after 1 fix cycle. 3C/4H fixed: score spoofing locked to service role, join errors surface to UI, channel cleanup guaranteed, double-score on replay blocked, providers use ref.watch, banner subtitle context-aware, countdown no longer flashes. 4M deferred to backlog. |
