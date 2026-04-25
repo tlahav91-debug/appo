@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/affinity/presentation/affinity_screen.dart';
+import '../../features/club/presentation/club_screen.dart';
+import '../../features/club/presentation/club_search_screen.dart';
 import '../../features/collectibles/presentation/album_screen.dart';
 import '../../features/events/presentation/lava_quest_screen.dart';
 import '../../features/pass/presentation/drama_pass_screen.dart';
@@ -76,6 +78,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/affinity/:seriesId',
         builder: (_, state) => AffinityScreen(
           seriesId: state.pathParameters['seriesId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/club/search',
+        builder: (_, __) => const ClubSearchScreen(),
+      ),
+      GoRoute(
+        path: '/club/:clubId',
+        builder: (_, state) => ClubScreen(
+          clubId: state.pathParameters['clubId']!,
         ),
       ),
     ],
