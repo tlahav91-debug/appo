@@ -10,6 +10,7 @@ import '../../energy/application/energy_provider.dart';
 import '../application/episodes_provider.dart';
 import '../domain/episode.dart';
 import '../../energy/domain/watch_result.dart';
+import '../../affinity/application/affinity_provider.dart';
 import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
 import 'episode_card.dart';
@@ -52,15 +53,23 @@ class _EpisodeList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final raceAsync = ref.watch(activeRaceProvider(seriesId));
     final race = raceAsync.valueOrNull;
+    final affinitiesAsync = ref.watch(characterAffinitiesProvider(seriesId));
+    final hasCharacters = (affinitiesAsync.valueOrNull ?? []).isNotEmpty;
+
+    // Number of pinned banners before episode rows
+    final bannerCount = (race != null ? 1 : 0) + (hasCharacters ? 1 : 0);
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: episodes.length + (race != null ? 1 : 0),
+      itemCount: episodes.length + bannerCount,
       itemBuilder: (context, index) {
         if (race != null && index == 0) {
           return _RaceBanner(race: race, ref: ref);
         }
-        final episode = episodes[race != null ? index - 1 : index];
+        if (hasCharacters && index == (race != null ? 1 : 0)) {
+          return _CharactersBanner(seriesId: seriesId);
+        }
+        final episode = episodes[index - bannerCount];
         return _EpisodeRow(episode: episode);
       },
     );
@@ -128,6 +137,45 @@ class _EpisodeRow extends ConsumerWidget {
     final rng = Random.secure();
     final bytes = List.generate(16, (_) => rng.nextInt(256));
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
+}
+
+class _CharactersBanner extends StatelessWidget {
+  final String seriesId;
+
+  const _CharactersBanner({required this.seriesId});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/affinity/$seriesId'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: purpleDim),
+        ),
+        child: Row(
+          children: [
+            const Text('💙', style: TextStyle(fontSize: 20)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Character Relationships',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: textDim, size: 20),
+          ],
+        ),
+      ),
+    );
   }
 }
 

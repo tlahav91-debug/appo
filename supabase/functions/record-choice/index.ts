@@ -165,7 +165,7 @@ Deno.serve(async (req: Request) => {
     .update({ coins: newBalance })
     .eq("id", userId);
 
-  // Increment race score + quest progress — only on first-time choice, fire-and-forget
+  // Increment race score + quest progress + character affinity — first-time only, fire-and-forget
   if (episode.series_id && !choiceAlreadyRecorded) {
     await Promise.all([
       supabase.rpc("increment_race_score", {
@@ -176,6 +176,10 @@ Deno.serve(async (req: Request) => {
         p_user_id: userId,
         p_series_id: episode.series_id,
       }).catch((e) => console.error("increment_quest_progress failed:", e)),
+      supabase.rpc("apply_choice_affinity", {
+        p_user_id: userId,
+        p_choice_id: choice_id,
+      }).catch((e) => console.error("apply_choice_affinity failed:", e)),
     ]);
   }
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
+import '../../features/affinity/presentation/affinity_screen.dart';
 import '../../features/collectibles/presentation/album_screen.dart';
 import '../../features/events/presentation/lava_quest_screen.dart';
 import '../../features/pass/presentation/drama_pass_screen.dart';
@@ -69,6 +70,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/quest/:questId',
         builder: (_, state) => LavaQuestScreen(
           questId: state.pathParameters['questId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/affinity/:seriesId',
+        builder: (_, state) => AffinityScreen(
+          seriesId: state.pathParameters['seriesId']!,
         ),
       ),
     ],
