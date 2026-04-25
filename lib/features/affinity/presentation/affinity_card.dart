@@ -42,7 +42,9 @@ class AffinityCard extends StatelessWidget {
                   char.avatarUrl != null ? NetworkImage(char.avatarUrl!) : null,
               child: char.avatarUrl == null
                   ? Text(
-                      char.name.substring(0, 1).toUpperCase(),
+                      char.name.isNotEmpty
+                          ? char.name.substring(0, 1).toUpperCase()
+                          : '?',
                       style: GoogleFonts.nunito(
                         color: textCol,
                         fontWeight: FontWeight.w900,

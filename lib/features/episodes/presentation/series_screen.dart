@@ -10,7 +10,8 @@ import '../../energy/application/energy_provider.dart';
 import '../application/episodes_provider.dart';
 import '../domain/episode.dart';
 import '../../energy/domain/watch_result.dart';
-import '../../affinity/application/affinity_provider.dart';
+import '../../affinity/application/affinity_provider.dart'
+    show seriesHasCharactersProvider;
 import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
 import 'episode_card.dart';
@@ -53,8 +54,9 @@ class _EpisodeList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final raceAsync = ref.watch(activeRaceProvider(seriesId));
     final race = raceAsync.valueOrNull;
-    final affinitiesAsync = ref.watch(characterAffinitiesProvider(seriesId));
-    final hasCharacters = (affinitiesAsync.valueOrNull ?? []).isNotEmpty;
+    // H-4 fix: use a stable one-shot provider so banner appears without layout shift
+    final hasCharacters =
+        ref.watch(seriesHasCharactersProvider(seriesId)).valueOrNull ?? false;
 
     // Number of pinned banners before episode rows
     final bannerCount = (race != null ? 1 : 0) + (hasCharacters ? 1 : 0);

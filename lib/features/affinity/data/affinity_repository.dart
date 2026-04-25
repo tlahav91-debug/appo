@@ -6,6 +6,15 @@ import '../domain/character_affinity.dart';
 class AffinityRepository {
   final _db = Supabase.instance.client;
 
+  Future<bool> seriesHasCharacters(String seriesId) async {
+    final rows = await _db
+        .from('characters')
+        .select('id')
+        .eq('series_id', seriesId)
+        .limit(1);
+    return rows.isNotEmpty;
+  }
+
   Future<List<CharacterAffinity>> fetchAffinityForSeries(String seriesId) async {
     final userId = _db.auth.currentUser?.id;
 
@@ -47,9 +56,10 @@ class AffinityRepository {
     if (userId == null) return;
 
     final ctrl = StreamController<void>.broadcast();
-    final channel = _db.channel('affinity_$userId\_$seriesId');
 
+    // C-1 fix: channel created inside try so finally always cleans up
     try {
+      final channel = _db.channel('affinity_${userId}_$seriesId');
       channel
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
@@ -64,12 +74,17 @@ class AffinityRepository {
           )
           .subscribe();
 
-      await for (final _ in ctrl.stream) {
-        yield await fetchAffinityForSeries(seriesId);
+      try {
+        await for (final _ in ctrl.stream) {
+          yield await fetchAffinityForSeries(seriesId);
+        }
+      } finally {
+        await ctrl.close();
+        _db.removeChannel(channel);
       }
-    } finally {
+    } catch (_) {
       await ctrl.close();
-      _db.removeChannel(channel);
+      rethrow;
     }
   }
 }
