@@ -10,6 +10,8 @@ import '../../energy/application/energy_provider.dart';
 import '../application/episodes_provider.dart';
 import '../domain/episode.dart';
 import '../../energy/domain/watch_result.dart';
+import '../../race/application/race_provider.dart';
+import '../../race/domain/race.dart';
 import 'episode_card.dart';
 
 class SeriesScreen extends ConsumerWidget {
@@ -48,11 +50,17 @@ class _EpisodeList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final raceAsync = ref.watch(activeRaceProvider(seriesId));
+    final race = raceAsync.valueOrNull;
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: episodes.length,
+      itemCount: episodes.length + (race != null ? 1 : 0),
       itemBuilder: (context, index) {
-        final episode = episodes[index];
+        if (race != null && index == 0) {
+          return _RaceBanner(race: race);
+        }
+        final episode = episodes[race != null ? index - 1 : index];
         return _EpisodeRow(episode: episode);
       },
     );
@@ -120,5 +128,55 @@ class _EpisodeRow extends ConsumerWidget {
     final rng = Random.secure();
     final bytes = List.generate(16, (_) => rng.nextInt(256));
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
+}
+
+class _RaceBanner extends StatelessWidget {
+  final Race race;
+
+  const _RaceBanner({required this.race});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/race/${race.id}'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: purpleGrad,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Text('⚡', style: TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    race.title,
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    'Drama Sprint active · tap to join',
+                    style: GoogleFonts.sora(
+                      color: textSec,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: textCol),
+          ],
+        ),
+      ),
+    );
   }
 }

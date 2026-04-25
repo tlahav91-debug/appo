@@ -56,10 +56,10 @@ Deno.serve(async (req: Request) => {
 
   if (!choice) return json({ error: "Choice not found for this episode" }, 404);
 
-  // Verify episode exists and check if it's free
+  // Verify episode exists and check if it's free; fetch series_id for race scoring
   const { data: episode } = await supabase
     .from("episodes")
-    .select("id, is_free")
+    .select("id, is_free, series_id")
     .eq("id", episode_id)
     .maybeSingle();
 
@@ -161,6 +161,14 @@ Deno.serve(async (req: Request) => {
     .from("profiles")
     .update({ coins: newBalance })
     .eq("id", userId);
+
+  // Increment race score — fire-and-forget, never fail the request
+  if (episode.series_id) {
+    await supabase.rpc("increment_race_score", {
+      p_user_id: userId,
+      p_series_id: episode.series_id,
+    }).catch(() => {/* no-op */});
+  }
 
   return json({
     choice_id,

@@ -6,6 +6,7 @@ import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/auth/presentation/auth_screen.dart';
 import '../../features/collectibles/presentation/album_screen.dart';
 import '../../features/pass/presentation/drama_pass_screen.dart';
+import '../../features/race/presentation/race_screen.dart';
 import '../../features/shop/presentation/gem_shop_screen.dart';
 import '../../features/episodes/domain/episode.dart';
 import '../../features/episodes/presentation/series_screen.dart';
@@ -56,6 +57,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/pass',
         builder: (_, __) => const DramaPassScreen(),
+      ),
+      GoRoute(
+        path: '/race/:raceId',
+        builder: (_, state) => RaceScreen(
+          raceId: state.pathParameters['raceId']!,
+        ),
       ),
     ],
   );
