@@ -25,25 +25,31 @@ CREATE POLICY "user can read own inbox"
 
 -- service_role has full access implicitly
 
--- Seed welcome items for all existing users
+-- Seed welcome items for all existing users (existence check prevents duplicates on re-run)
 INSERT INTO inbox_items (user_id, type, title, body, reward_coins, reward_gems)
 SELECT
-  id,
+  u.id,
   'reward',
   '🎉 Welcome Bonus',
   'Thanks for joining! Here are some coins and gems to get you started.',
   100,
   5
-FROM auth.users
-ON CONFLICT DO NOTHING;
+FROM auth.users u
+WHERE NOT EXISTS (
+  SELECT 1 FROM inbox_items i
+  WHERE i.user_id = u.id AND i.title = '🎉 Welcome Bonus'
+);
 
 INSERT INTO inbox_items (user_id, type, title, body, reward_coins, reward_gems)
 SELECT
-  id,
+  u.id,
   'announcement',
   '📺 First Episode Free',
   'Your first episode in any series is always free — no energy needed. Start watching now!',
   0,
   0
-FROM auth.users
-ON CONFLICT DO NOTHING;
+FROM auth.users u
+WHERE NOT EXISTS (
+  SELECT 1 FROM inbox_items i
+  WHERE i.user_id = u.id AND i.title = '📺 First Episode Free'
+);

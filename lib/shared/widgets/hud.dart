@@ -124,7 +124,7 @@ class _HudContent extends ConsumerWidget {
               Consumer(builder: (context, ref, _) {
                 final unread = ref.watch(unreadCountProvider);
                 return GestureDetector(
-                  onTap: () => InboxScreen.show(context, ref),
+                  onTap: () => InboxScreen.show(context),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [

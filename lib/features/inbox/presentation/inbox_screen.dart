@@ -10,7 +10,7 @@ import '../domain/inbox_item.dart';
 class InboxScreen extends ConsumerStatefulWidget {
   const InboxScreen({super.key});
 
-  static Future<void> show(BuildContext context, WidgetRef ref) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,

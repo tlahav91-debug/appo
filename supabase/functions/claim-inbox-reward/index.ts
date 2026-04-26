@@ -37,14 +37,16 @@ Deno.serve(async (req: Request) => {
   if (item.claimed) return json({ error: "Already claimed" }, 409);
   if (item.expires_at && new Date(item.expires_at) < new Date()) return json({ error: "Item expired" }, 410);
 
-  // Mark claimed
-  const { error: claimErr } = await admin
+  // Mark claimed — use .select() so we can detect 0 rows matched (race condition guard)
+  const { data: claimData, error: claimErr } = await admin
     .from("inbox_items")
     .update({ claimed: true })
     .eq("id", item_id)
-    .eq("claimed", false); // optimistic lock
+    .eq("claimed", false)
+    .select("id");
 
   if (claimErr) return json({ error: "Claim failed — retry" }, 409);
+  if (!claimData || claimData.length === 0) return json({ error: "Already claimed" }, 409);
 
   // Credit rewards if any
   if (item.reward_coins > 0 || item.reward_gems > 0) {

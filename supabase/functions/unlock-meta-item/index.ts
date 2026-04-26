@@ -30,19 +30,19 @@ Deno.serve(async (req: Request) => {
 
   const cost = CATALOG[item_type][item_id];
 
-  // Free items don't need DB unlock — equip them directly
-  if (cost === 0) {
-    return json({ unlocked: true, gems_remaining: -1 });
-  }
-
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Validate JWT and get user
+  // Validate JWT before any response — including free items
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(jwt);
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
+
+  // Free items don't need DB unlock — equip them directly
+  if (cost === 0) {
+    return json({ unlocked: true, gems_remaining: -1 });
+  }
   const userId = user.id;
 
   // Check if already unlocked
@@ -105,10 +105,13 @@ Deno.serve(async (req: Request) => {
     .insert({ user_id: userId, item_type, item_id });
 
   if (unlockErr) {
-    // Rollback gems and ledger
+    // Rollback: re-read current balance and add cost back atomically
+    // (avoids overwriting with stale profile.gems if concurrent ops ran)
+    const { data: current } = await supabaseAdmin
+      .from("profiles").select("gems").eq("id", userId).single();
     await supabaseAdmin
       .from("profiles")
-      .update({ gems: profile.gems })
+      .update({ gems: (current?.gems ?? 0) + cost })
       .eq("id", userId);
     await supabaseAdmin
       .from("currency_ledger")

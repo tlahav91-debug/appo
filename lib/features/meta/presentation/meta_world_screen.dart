@@ -140,7 +140,7 @@ class _MetaWorldScreenState extends ConsumerState<MetaWorldScreen> {
       outfitId: _selectedOutfit,
       moodId: _selectedMood,
     );
-    setState(() => _saving = false);
+    if (mounted) setState(() => _saving = false);
     if (ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
