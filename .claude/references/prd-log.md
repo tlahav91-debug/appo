@@ -28,3 +28,7 @@
 | PRD-034 | Push Notification Soft-Ask | ✅ Closed | 37c3d10 | QA fixes: C-1 _softAskInProgress guard prevents concurrent soft-ask; H-1 pre-auth check extended to all platforms |
 | PRD-035 | Episode Progress Indicators | ✅ Closed | 37c3d10 | QA fixes: H-1 composite index on watch_progress(user_id,series_id); H-2 invalidate seriesProgressProvider in _onDone() |
 | PRD-036 | Series Ratings | ✅ Closed | 37c3d10 | QA fixes: C-1 context.go('/') → /home in completion modal; H-1 myRating cast via (as num?)?.toInt() |
+| PRD-037 | IAP / Gem Store | ✅ Closed | ee5238b | Clean — in_app_purchase, validate-iap-receipt Edge Fn, GemStoreScreen, iap_receipts migration |
+| PRD-038 | Rewarded Ads | ✅ Closed | 1364469 | Clean — increment-energy Edge Fn, RewardedAdService, _AdButton in EnergyGate (goldGrad, 3/day cap) |
+| PRD-039 | Referral System | ✅ Closed | 04a0ab0 | Clean — redeem-referral Edge Fn, referral_code trigger, ReferralScreen, hud invite tile |
+| PRD-040 | Onboarding Flow | ✅ Closed | 04a0ab0 | Clean — genre quiz on 2nd session, genre_preferences migration, feed reorder, AppShell guard |
