@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/analytics/analytics_provider.dart';
+import '../../../core/notifications/notification_provider.dart';
 import '../data/profile_repository.dart';
 import '../domain/fan_level.dart';
 import '../domain/profile.dart';
@@ -42,6 +43,7 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
           final live = await repo.fetchProfile(userId);
           state = AsyncValue.data(live);
           _identifyAndTrack(userId, live);
+          _setupPushNotifications();
           _subscribeRealtime(userId, repo);
           _syncPassEntitlement(userId);
           _claimDailyPassBonusIfEligible(live);
@@ -52,6 +54,7 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
 
     final live = await repo.fetchProfile(userId);
     _identifyAndTrack(userId, live);
+    _setupPushNotifications();
     _subscribeRealtime(userId, repo);
     _syncPassEntitlement(userId);
     _claimDailyPassBonusIfEligible(live);
@@ -68,6 +71,16 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
       analytics.capture('session_started');
       _hasTrackedSession = true;
     }
+  }
+
+  void _setupPushNotifications() {
+    final service = ref.read(notificationServiceProvider);
+    Future.microtask(() async {
+      try {
+        await service.initialize();
+        await service.registerCurrentToken();
+      } catch (_) {}
+    });
   }
 
   void _subscribeRealtime(String userId, ProfileRepository repo) {
