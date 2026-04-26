@@ -11,6 +11,7 @@ import '../../../shared/widgets/choice_sheet.dart';
 import '../application/episodes_provider.dart';
 import '../domain/episode.dart';
 import 'reaction_row.dart';
+import '../application/series_rating_provider.dart';
 
 class EpisodeDetailScreen extends ConsumerStatefulWidget {
   final Episode episode;
@@ -446,13 +447,27 @@ class _NextEpisodeBarState extends ConsumerState<_NextEpisodeBar> {
 }
 
 // ---------------------------------------------------------------------------
-// _SeriesCompletionModal — full-screen celebration dialog
+// _SeriesCompletionModal — full-screen celebration dialog with star rating
 // ---------------------------------------------------------------------------
 
-class _SeriesCompletionModal extends StatelessWidget {
+class _SeriesCompletionModal extends ConsumerStatefulWidget {
   final Episode episode;
-
   const _SeriesCompletionModal({required this.episode});
+
+  @override
+  ConsumerState<_SeriesCompletionModal> createState() => _SeriesCompletionModalState();
+}
+
+class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> {
+  int? _selectedRating;
+  bool _ratingSubmitted = false;
+
+  Future<void> _rate(int stars) async {
+    setState(() => _selectedRating = stars);
+    await ref.read(ratingServiceProvider).submitRating(widget.episode.seriesId, stars);
+    ref.invalidate(seriesRatingProvider(widget.episode.seriesId));
+    if (mounted) setState(() => _ratingSubmitted = true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -476,38 +491,41 @@ class _SeriesCompletionModal extends StatelessWidget {
               children: [
                 const Text('🎉', style: TextStyle(fontSize: 64)),
                 const SizedBox(height: 16),
-                Text(
-                  'Series Complete!',
-                  style: GoogleFonts.nunito(
-                    color: gold,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 28,
-                  ),
-                ),
+                Text('Series Complete!', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w900, fontSize: 28)),
                 const SizedBox(height: 8),
-                Text(
-                  'You\'ve finished all episodes.',
-                  style: GoogleFonts.sora(color: textSec, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
+                Text('You\'ve finished all episodes.', style: GoogleFonts.sora(color: textSec, fontSize: 14), textAlign: TextAlign.center),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '+50 XP Bonus',
-                    style: GoogleFonts.nunito(
-                      color: gold,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
+                  decoration: BoxDecoration(color: gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                  child: Text('+50 XP Bonus', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800, fontSize: 16)),
+                ),
+                const SizedBox(height: 24),
+                // Star rating
+                Text(
+                  _ratingSubmitted ? 'Thanks for rating!' : 'Rate this series',
+                  style: GoogleFonts.sora(color: textSec, fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (i) {
+                    final star = i + 1;
+                    final filled = _selectedRating != null && star <= _selectedRating!;
+                    return GestureDetector(
+                      onTap: _ratingSubmitted ? null : () => _rate(star),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          filled ? Icons.star_rounded : Icons.star_outline_rounded,
+                          color: filled ? gold : textDim,
+                          size: 36,
+                        ),
+                      ),
+                    );
+                  }),
                 ),
                 const SizedBox(height: 28),
-                // Find Another Series
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -516,20 +534,8 @@ class _SeriesCompletionModal extends StatelessWidget {
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      gradient: pinkFull,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Find Another Series',
-                        style: GoogleFonts.nunito(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
+                    decoration: BoxDecoration(gradient: pinkFull, borderRadius: BorderRadius.circular(14)),
+                    child: Center(child: Text('Find Another Series', style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -538,10 +544,7 @@ class _SeriesCompletionModal extends StatelessWidget {
                     Navigator.pop(context);
                     context.go('/');
                   },
-                  child: Text(
-                    'Back to Home',
-                    style: GoogleFonts.sora(color: textDim, fontSize: 14),
-                  ),
+                  child: Text('Back to Home', style: GoogleFonts.sora(color: textDim, fontSize: 14)),
                 ),
               ],
             ),

@@ -17,6 +17,7 @@ import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
 import 'episode_card.dart';
 import '../application/episode_progress_provider.dart';
+import '../application/series_rating_provider.dart';
 
 class SeriesScreen extends ConsumerWidget {
   final String seriesId;
@@ -102,12 +103,12 @@ class _EpisodeList extends ConsumerWidget {
   }
 }
 
-class _SeriesHeroHeader extends StatelessWidget {
+class _SeriesHeroHeader extends ConsumerWidget {
   final SeriesDetail? series;
   const _SeriesHeroHeader({this.series});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (series == null) return const SizedBox(height: 200, child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: pink, strokeWidth: 2))));
     return Stack(
       children: [
@@ -198,6 +199,24 @@ class _SeriesHeroHeader extends StatelessWidget {
                 '${series!.totalEpisodes} episodes',
                 style: GoogleFonts.sora(color: textDim, fontSize: 11),
               ),
+              // Rating display — only shown when there are ratings
+              Builder(builder: (context) {
+                final ratingState = ref.watch(seriesRatingProvider(series!.id)).valueOrNull;
+                if (ratingState == null || ratingState.ratingCount == 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: gold, size: 13),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${ratingState.avgRating.toStringAsFixed(1)} (${ratingState.ratingCount})',
+                        style: GoogleFonts.sora(color: textSec, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ),
         ),
