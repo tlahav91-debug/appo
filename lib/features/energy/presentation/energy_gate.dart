@@ -6,6 +6,7 @@ import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/g_btn.dart';
 import '../../../shared/widgets/energy_timer.dart';
 import '../../ads/application/ad_provider.dart';
+import '../../profile/application/profile_provider.dart';
 import '../application/energy_provider.dart';
 import '../data/watch_episode_service.dart';
 
