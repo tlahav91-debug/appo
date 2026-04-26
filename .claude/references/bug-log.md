@@ -1,6 +1,12 @@
 # Bug Log
 
-## PRD-014 — Watch Club / Guild
+## PRD-015 — Fan Level + XP
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-015-C1 | grant_xp missing REVOKE FROM PUBLIC — authenticated users can grant arbitrary XP | Critical | ✅ Fixed — migration 000018 revokes PUBLIC EXECUTE |
+
+
 
 | ID | Title | Severity | Status |
 |----|-------|----------|--------|
