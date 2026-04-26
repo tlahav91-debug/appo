@@ -20,6 +20,7 @@ final profileProvider =
 
 class ProfileNotifier extends AsyncNotifier<Profile> {
   StreamSubscription<List<Map<String, dynamic>>>? _realtimeSub;
+  bool _hasTrackedSession = false;
 
   @override
   Future<Profile> build() async {
@@ -63,7 +64,10 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
       'fan_level': profile.fanLevel,
       'drama_pass_active': profile.dramaPassActive,
     });
-    analytics.capture('session_started');
+    if (!_hasTrackedSession) {
+      analytics.capture('session_started');
+      _hasTrackedSession = true;
+    }
   }
 
   void _subscribeRealtime(String userId, ProfileRepository repo) {
