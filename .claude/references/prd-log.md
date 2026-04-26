@@ -16,3 +16,7 @@
 | PRD-022 | My List Series Data Join | ✅ Closed | 79587fa | Clean — no bugs |
 | PRD-023 | Meta World Tab | ✅ Closed | e03a80d | QA fixes: M-2 gem rollback re-reads current balance; M-1 mounted guard in _save(); L-1 JWT validated before free-item early return |
 | PRD-024 | Inbox with Claimable Rewards | ✅ Closed | e03a80d | QA fixes: C-1 double-claim race via .select('id') on UPDATE; L-1 unused WidgetRef removed from show(); L-2 seed inserts use WHERE NOT EXISTS guard |
+| PRD-025 | Cliffhanger / Energy Gate Modal | ✅ Closed | e3e6761 | QA fix: C-1 GoRouter captured before Navigator.pop to prevent use-after-free context |
+| PRD-026 | Series Detail Screen v5 | ✅ Closed | e3e6761 | QA fixes: H-1 WidgetRef stored as _RaceBanner field removed; M-1 loading placeholder shows spinner |
+| PRD-027 | Daily Streak + Rewards Screen | ✅ Closed | e3e6761 | QA fixes: C-1 atomic increment_currency RPC replaces lost-update pattern; C-2 INSERT RLS gap documented + RPC secured; H-1 date boundary uses tomorrow not 23:59:59; H-2 isToday flag consolidated; M-1 dead streakStart variable removed |
+| PRD-028 | Leaderboard — Real Rankings | ✅ Closed | e3e6761 | QA fixes: C-1 races ordered by starts_at (no created_at column); H-1 profiles join uses automatic FK resolution; M-1 Column wrapped in Positioned.fill |
