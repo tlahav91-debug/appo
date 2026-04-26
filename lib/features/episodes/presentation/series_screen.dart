@@ -8,6 +8,7 @@ import '../../../shared/widgets/hud.dart';
 import '../../energy/presentation/energy_gate.dart';
 import '../../energy/application/energy_provider.dart';
 import '../application/episodes_provider.dart';
+import '../application/series_detail_provider.dart';
 import '../domain/episode.dart';
 import '../../energy/domain/watch_result.dart';
 import '../../affinity/application/affinity_provider.dart'
@@ -24,14 +25,23 @@ class SeriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final episodesAsync = ref.watch(episodesProvider(seriesId));
+    final seriesDetailAsync = ref.watch(seriesDetailProvider(seriesId));
+
+    final seriesDetail = seriesDetailAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: bgDeep,
       appBar: const HUD(),
       body: episodesAsync.when(
-        data: (episodes) => _EpisodeList(episodes: episodes, seriesId: seriesId),
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: pink),
+        data: (episodes) => _EpisodeList(
+          episodes: episodes,
+          seriesId: seriesId,
+          seriesDetail: seriesDetail,
+        ),
+        loading: () => _EpisodeList(
+          episodes: const [],
+          seriesId: seriesId,
+          seriesDetail: null,
         ),
         error: (e, _) => Center(
           child: Text(
@@ -47,8 +57,13 @@ class SeriesScreen extends ConsumerWidget {
 class _EpisodeList extends ConsumerWidget {
   final List<Episode> episodes;
   final String seriesId;
+  final SeriesDetail? seriesDetail;
 
-  const _EpisodeList({required this.episodes, required this.seriesId});
+  const _EpisodeList({
+    required this.episodes,
+    required this.seriesId,
+    required this.seriesDetail,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,19 +76,131 @@ class _EpisodeList extends ConsumerWidget {
     // Number of pinned banners before episode rows
     final bannerCount = (race != null ? 1 : 0) + (hasCharacters ? 1 : 0);
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: episodes.length + bannerCount,
-      itemBuilder: (context, index) {
-        if (race != null && index == 0) {
-          return _RaceBanner(race: race, ref: ref);
-        }
-        if (hasCharacters && index == (race != null ? 1 : 0)) {
-          return _CharactersBanner(seriesId: seriesId);
-        }
-        final episode = episodes[index - bannerCount];
-        return _EpisodeRow(episode: episode);
-      },
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _SeriesHeroHeader(series: seriesDetail),
+        ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (race != null && index == 0) {
+                return _RaceBanner(race: race, ref: ref);
+              }
+              if (hasCharacters && index == (race != null ? 1 : 0)) {
+                return _CharactersBanner(seriesId: seriesId);
+              }
+              final episode = episodes[index - bannerCount];
+              return _EpisodeRow(episode: episode);
+            },
+            childCount: episodes.length + bannerCount,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SeriesHeroHeader extends StatelessWidget {
+  final SeriesDetail? series;
+  const _SeriesHeroHeader({this.series});
+
+  @override
+  Widget build(BuildContext context) {
+    if (series == null) return const SizedBox(height: 200);
+    return Stack(
+      children: [
+        // Hero image
+        SizedBox(
+          height: 220,
+          width: double.infinity,
+          child: series!.coverUrl != null
+              ? Image.network(
+                  series!.coverUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(color: card),
+                )
+              : Container(color: card),
+        ),
+        // Gradient scrim
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, bgDeep],
+                stops: const [0.4, 1.0],
+              ),
+            ),
+          ),
+        ),
+        // Metadata overlay
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                if (series!.isVip)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      gradient: goldGrad,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'VIP',
+                      style: GoogleFonts.nunito(
+                        color: bgDeep,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                if (series!.genre != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      series!.genre!,
+                      style: GoogleFonts.sora(color: textSec, fontSize: 11),
+                    ),
+                  ),
+              ]),
+              const SizedBox(height: 6),
+              Text(
+                series!.title,
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                ),
+              ),
+              if (series!.description != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  series!.description!,
+                  style: GoogleFonts.sora(color: textSec, fontSize: 12),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                '${series!.totalEpisodes} episodes',
+                style: GoogleFonts.sora(color: textDim, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
