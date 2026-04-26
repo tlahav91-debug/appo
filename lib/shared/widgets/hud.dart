@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
+import '../../features/inbox/application/inbox_provider.dart';
+import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/domain/fan_level.dart';
 import '../../features/profile/domain/profile.dart';
@@ -119,7 +121,31 @@ class _HudContent extends ConsumerWidget {
               CurrencyDisplay(amount: profile.gems, emoji: '💎', color: cyan),
               const SizedBox(width: 12),
               // Mail icon with badge
-              const Text('📬', style: TextStyle(fontSize: 20)),
+              Consumer(builder: (context, ref, _) {
+                final unread = ref.watch(unreadCountProvider);
+                return GestureDetector(
+                  onTap: () => InboxScreen.show(context, ref),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Text('📬', style: TextStyle(fontSize: 20)),
+                      if (unread > 0)
+                        Positioned(
+                          top: -4, right: -4,
+                          child: Container(
+                            width: 16, height: 16,
+                            decoration: const BoxDecoration(color: pink, shape: BoxShape.circle),
+                            alignment: Alignment.center,
+                            child: Text(
+                              unread > 9 ? '9+' : '$unread',
+                              style: GoogleFonts.nunito(color: textCol, fontSize: 8, fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(width: 12),
               // Settings
               GestureDetector(
