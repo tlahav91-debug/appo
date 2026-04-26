@@ -9,3 +9,7 @@
 | PRD-015 | Fan Level + XP | ✅ Closed | local | QA fix: C1 grant_xp missing REVOKE FROM PUBLIC (XP exploit) |
 | PRD-016 | PostHog Analytics | ✅ Closed | local | QA fix: M1 session_started fires on every profileProvider invalidation |
 | PRD-017 | Push Notifications (FCM) | ✅ Closed | local | QA fixes: M1 data values not coerced to strings (FCM rejection), L1 non-stale FCM errors silent |
+| PRD-018 | Navigation Restructure + HUD | 🔄 QA | 7c326b3 | Nav: Home/Discover/MyList/Rewards/Meta; VIP bar; mail icon; Events+Journey cards on Home; Rankings on Rewards |
+| PRD-019 | Continue Watching / My List | 🔄 QA | c9b0a19 | watch_progress + saved_dramas tables; record-watch-progress + toggle-saved-drama Edge Fns; MyListScreen 3 tabs |
+| PRD-020 | Discover Screen | 🔄 QA | 11ec88f | Search + genre filter + trending row + 3-col grid; allSeriesProvider |
+| PRD-021 | Home Screen v5 Redesign | 🔄 QA | 3e178f0 | Hero carousel (auto-scroll 4s); Continue Watching strip; quick links; drama grid; club strip |
