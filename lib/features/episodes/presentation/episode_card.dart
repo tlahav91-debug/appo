@@ -6,12 +6,16 @@ import '../domain/episode.dart';
 class EpisodeCard extends StatelessWidget {
   final Episode episode;
   final bool isUnlocked;
+  final bool isCompleted;
+  final int progressPct;
   final VoidCallback onTap;
 
   const EpisodeCard({
     super.key,
     required this.episode,
     required this.isUnlocked,
+    this.isCompleted = false,
+    this.progressPct = 0,
     required this.onTap,
   });
 
@@ -36,15 +40,40 @@ class EpisodeCard extends StatelessWidget {
             // Thumbnail
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(13)),
-              child: SizedBox(
-                width: 88,
-                height: 72,
-                child: episode.thumbnailUrl != null
-                    ? Image.network(episode.thumbnailUrl!, fit: BoxFit.cover)
-                    : Container(
-                        color: cardHi,
-                        child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
+              child: Stack(
+                children: [
+                  SizedBox(
+                    width: 88,
+                    height: 72,
+                    child: episode.thumbnailUrl != null
+                        ? Image.network(episode.thumbnailUrl!, fit: BoxFit.cover)
+                        : Container(
+                            color: cardHi,
+                            child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
+                          ),
+                  ),
+                  // Progress bar at bottom of thumbnail
+                  if (progressPct > 0 && !isCompleted)
+                    Positioned(
+                      left: 0, right: 0, bottom: 0,
+                      child: LinearProgressIndicator(
+                        value: progressPct / 100.0,
+                        minHeight: 3,
+                        backgroundColor: Colors.black45,
+                        valueColor: AlwaysStoppedAnimation<Color>(pink),
                       ),
+                    ),
+                  // Completed overlay checkmark
+                  if (isCompleted)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black54,
+                        child: const Center(
+                          child: Icon(Icons.check_circle, color: Colors.white, size: 28),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 12),
@@ -85,6 +114,19 @@ class EpisodeCard extends StatelessWidget {
   }
 
   Widget _badge(bool accessible) {
+    if (isCompleted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          gradient: greenGrad,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          'Watched',
+          style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w900, fontSize: 11),
+        ),
+      );
+    }
     if (accessible) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -16,6 +16,7 @@ import '../../affinity/application/affinity_provider.dart'
 import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
 import 'episode_card.dart';
+import '../application/episode_progress_provider.dart';
 
 class SeriesScreen extends ConsumerWidget {
   final String seriesId;
@@ -215,9 +216,14 @@ class _EpisodeRow extends ConsumerWidget {
     final unlockedAsync = ref.watch(episodeUnlockedProvider(episode.id));
     final isUnlocked = unlockedAsync.valueOrNull ?? false;
 
+    final progressMap = ref.watch(seriesProgressProvider(episode.seriesId)).valueOrNull ?? {};
+    final epProgress = progressMap[episode.id];
+
     return EpisodeCard(
       episode: episode,
       isUnlocked: isUnlocked,
+      isCompleted: epProgress?.completed ?? false,
+      progressPct: epProgress?.progressPct ?? 0,
       onTap: () => _handleTap(context, ref, isUnlocked),
     );
   }
