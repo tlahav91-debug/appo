@@ -24,19 +24,24 @@ class IAPService {
     products.sort((a, b) => a.rawPrice.compareTo(b.rawPrice));
   }
 
+  // Last validation error — callers may surface this to UI
+  String? lastValidationError;
+
   Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {
     for (final p in purchases) {
       if (p.status == PurchaseStatus.purchased ||
           p.status == PurchaseStatus.restored) {
         await _validate(p);
         await _iap.completePurchase(p);
-      } else if (p.status == PurchaseStatus.error) {
+      } else if (p.status == PurchaseStatus.error ||
+                 p.status == PurchaseStatus.cancelled) {
         await _iap.completePurchase(p);
       }
     }
   }
 
   Future<void> _validate(PurchaseDetails p) async {
+    lastValidationError = null;
     try {
       final receiptData = Platform.isIOS
           ? p.verificationData.serverVerificationData
@@ -50,7 +55,9 @@ class IAPService {
           'transaction_id': p.purchaseID ?? p.productID,
         },
       );
-    } catch (_) {}
+    } catch (e) {
+      lastValidationError = e.toString();
+    }
   }
 
   Future<void> buy(String productId) async {

@@ -35,6 +35,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _skip() async {
     await completeOnboarding([]);
+    ref.invalidate(profileProvider);
     if (mounted) context.go('/home');
   }
 

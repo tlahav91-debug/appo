@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/analytics/analytics_provider.dart';
 import '../../../core/notifications/notification_provider.dart';
@@ -33,7 +32,6 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) throw Exception('Not authenticated');
 
-    await Purchases.logIn(userId);
 
     // Serve cache immediately while fetching live data
     final cached = await repo.getCachedProfile();
@@ -97,19 +95,8 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
         });
   }
 
-  // Reconcile drama_pass_active with RevenueCat entitlement truth
   Future<void> _syncPassEntitlement(String userId) async {
-    try {
-      final info = await Purchases.getCustomerInfo();
-      final rcActive = info.entitlements.active.containsKey('drama_pass');
-      final dbActive = state.valueOrNull?.dramaPassActive ?? false;
-      if (rcActive != dbActive) {
-        await Supabase.instance.client
-            .from('profiles')
-            .update({'drama_pass_active': rcActive})
-            .eq('id', userId);
-      }
-    } catch (_) {}
+    // Drama Pass entitlement sync — reserved for future IAP integration
   }
 
   // Fire-and-forget daily pass bonus; Realtime stream picks up the energy change
@@ -127,7 +114,6 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     await _realtimeSub?.cancel();
     _realtimeSub = null;
     await repo.clearCache();
-    await Purchases.logOut();
     ref.read(analyticsProvider).reset();
     await Supabase.instance.client.auth.signOut();
     ref.invalidateSelf();

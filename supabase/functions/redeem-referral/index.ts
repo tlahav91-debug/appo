@@ -64,18 +64,26 @@ Deno.serve(async (req: Request) => {
   }
 
   // 6. Award 100 coins to referrer
-  await supabase.rpc("increment_currency", {
+  const { error: rpcErr1 } = await supabase.rpc("increment_currency", {
     uid: referrerId,
     d_coins: 100,
     d_gems: 0,
   });
+  if (rpcErr1) {
+    console.error("Failed to reward referrer:", rpcErr1.message);
+    return json({ error: "Failed to credit referrer reward" }, 500);
+  }
 
   // 7. Award 100 coins to referee (caller)
-  await supabase.rpc("increment_currency", {
+  const { error: rpcErr2 } = await supabase.rpc("increment_currency", {
     uid: callerId,
     d_coins: 100,
     d_gems: 0,
   });
+  if (rpcErr2) {
+    console.error("Failed to reward referee:", rpcErr2.message);
+    return json({ error: "Failed to credit referee reward" }, 500);
+  }
 
   // 8. Return success
   return json({ rewarded: true });

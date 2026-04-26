@@ -291,12 +291,17 @@ class _AdButton extends ConsumerWidget {
       onPressed: () async {
         final earned = await ref.read(rewardedAdServiceProvider).show(
           onReward: () async {
-            await grantAdEnergy();
+            try {
+              await grantAdEnergy();
+            } catch (_) {
+              // Energy grant failed — ad still watched, record cap to prevent re-show
+            }
             await recordAdGrant();
           },
         );
         if (earned) {
           ref.invalidate(energyStateProvider);
+          ref.invalidate(adEnergyCapProvider);
           onDismiss();
         }
       },

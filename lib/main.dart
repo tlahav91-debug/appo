@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:posthog_flutter/posthog_flutter.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -19,15 +18,12 @@ Future<void> main() async {
 
   const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
-  const revenuecatKey = String.fromEnvironment('REVENUECAT_KEY');
   assert(supabaseUrl.isNotEmpty, 'SUPABASE_URL must be set via --dart-define');
   assert(supabaseAnonKey.isNotEmpty, 'SUPABASE_ANON_KEY must be set via --dart-define');
-  assert(revenuecatKey.isNotEmpty, 'REVENUECAT_KEY must be set via --dart-define');
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   await incrementLaunchCount();
   await MobileAds.instance.initialize();
-  await Purchases.configure(PurchasesConfiguration(revenuecatKey));
 
   const posthogKey = String.fromEnvironment('POSTHOG_API_KEY');
   if (posthogKey.isNotEmpty) {
