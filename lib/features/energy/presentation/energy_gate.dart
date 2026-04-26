@@ -226,7 +226,11 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                 ),
                 const SizedBox(height: 10),
 
-                // Option 4 — Wait
+                // Option 4 — Watch rewarded ad for +5 energy (PRD-038)
+                _AdButton(onDismiss: () => Navigator.pop(context)),
+                const SizedBox(height: 10),
+
+                // Option 5 — Wait
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
@@ -255,6 +259,53 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PRD-038: Gold "Watch ad for +5⚡" button — shown only when ad is ready and
+// the user has not yet hit the daily cap (3 grants per calendar day).
+// ---------------------------------------------------------------------------
+class _AdButton extends ConsumerWidget {
+  final VoidCallback onDismiss;
+
+  const _AdButton({required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final capAsync = ref.watch(adEnergyCapProvider);
+
+    // Hide while loading or if daily cap reached
+    final canWatch = capAsync.valueOrNull ?? false;
+    if (!canWatch) return const SizedBox.shrink();
+
+    final adService = ref.watch(rewardedAdServiceProvider);
+    if (!adService.isReady) return const SizedBox.shrink();
+
+    return GBtn(
+      gradient: goldGrad,
+      width: double.infinity,
+      onPressed: () async {
+        final earned = await ref.read(rewardedAdServiceProvider).show(
+          onReward: () async {
+            await grantAdEnergy();
+            await recordAdGrant();
+          },
+        );
+        if (earned) {
+          ref.invalidate(energyStateProvider);
+          onDismiss();
+        }
+      },
+      child: Text(
+        'Watch ad for +5⚡',
+        style: GoogleFonts.nunito(
+          color: textCol,
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
         ),
       ),
     );
