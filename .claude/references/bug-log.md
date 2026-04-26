@@ -1,5 +1,12 @@
 # Bug Log
 
+## PRD-017 — Push Notifications (FCM)
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-017-M1 | data map values not coerced to strings — FCM rejects non-string values silently | Medium | ✅ Fixed — safeData coercion in sendFcmMessage |
+| BUG-017-L1 | Non-UNREGISTERED FCM failures fully silent — indistinguishable from "no tokens" | Low | ✅ Fixed — errors[] array in response |
+
 ## PRD-016 — PostHog Analytics
 
 | ID | Title | Severity | Status |
