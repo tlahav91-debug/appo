@@ -271,7 +271,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ---------------------------------------------------------------------------
   // Club Strip sliver
   // ---------------------------------------------------------------------------
-  List<Widget> _buildClubStrip(AsyncValue<dynamic> clubAsync) {
+  List<Widget> _buildClubStrip(AsyncValue<WatchClub?> clubAsync) {
     if (!clubAsync.hasValue) return [];
     final club = clubAsync.value;
     if (club == null) return [];
@@ -290,7 +290,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const Text('👥', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 10),
               Text(
-                club.name as String,
+                club.name,
                 style: GoogleFonts.nunito(
                   color: textCol,
                   fontWeight: FontWeight.w700,
