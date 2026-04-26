@@ -11,6 +11,8 @@ class Profile {
   final DateTime lastRefillAt;
   final DateTime? lastPassBonusAt;
   final DateTime? starterPackPurchasedAt;
+  final String? referralCode;
+  final List<String> genrePreferences;
 
   const Profile({
     required this.id,
@@ -25,6 +27,8 @@ class Profile {
     required this.lastRefillAt,
     this.lastPassBonusAt,
     this.starterPackPurchasedAt,
+    this.referralCode,
+    this.genrePreferences = const [],
   });
 
   String get displayName => username ?? 'Player';
@@ -48,6 +52,7 @@ class Profile {
         starterPackPurchasedAt: json['starter_pack_purchased_at'] != null
             ? DateTime.parse(json['starter_pack_purchased_at'] as String).toUtc()
             : null,
+        referralCode: json['referral_code'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +68,7 @@ class Profile {
         'last_refill_at': lastRefillAt.toIso8601String(),
         'last_pass_bonus_at': lastPassBonusAt?.toIso8601String(),
         'starter_pack_purchased_at': starterPackPurchasedAt?.toIso8601String(),
+        'referral_code': referralCode,
       };
 
   Profile copyWith({
@@ -77,6 +83,7 @@ class Profile {
     DateTime? lastRefillAt,
     DateTime? lastPassBonusAt,
     DateTime? starterPackPurchasedAt,
+    String? referralCode,
   }) =>
       Profile(
         id: id,
@@ -91,6 +98,7 @@ class Profile {
         lastRefillAt: lastRefillAt ?? this.lastRefillAt,
         lastPassBonusAt: lastPassBonusAt ?? this.lastPassBonusAt,
         starterPackPurchasedAt: starterPackPurchasedAt ?? this.starterPackPurchasedAt,
+        referralCode: referralCode ?? this.referralCode,
       );
 
   bool get passBonusClaimableToday {
