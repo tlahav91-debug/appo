@@ -22,7 +22,7 @@ class WatchProgressService {
     if (userId == null) return [];
     final res = await _client
         .from('watch_progress')
-        .select()
+        .select('*, episodes!episode_id(title, episode_number, series:series_id(title, cover_url))')
         .eq('user_id', userId)
         .eq('completed', false)
         .order('last_watched_at', ascending: false)
@@ -35,7 +35,7 @@ class WatchProgressService {
     if (userId == null) return [];
     final res = await _client
         .from('watch_progress')
-        .select()
+        .select('*, episodes!episode_id(title, episode_number, series:series_id(title, cover_url))')
         .eq('user_id', userId)
         .order('last_watched_at', ascending: false)
         .limit(50);

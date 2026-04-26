@@ -107,15 +107,26 @@ class _ContinueCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          // Poster placeholder
-          Container(
-            width: 60,
-            height: 80,
-            decoration: BoxDecoration(
-              color: cardHi,
-              borderRadius: BorderRadius.circular(8),
+          // Poster
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 60,
+              height: 80,
+              child: item.coverUrl != null
+                  ? Image(
+                      image: NetworkImage(item.coverUrl!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: card,
+                        child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
+                      ),
+                    )
+                  : Container(
+                      color: card,
+                      child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
+                    ),
             ),
-            child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
           ),
           const SizedBox(width: 12),
           // Info
@@ -124,19 +135,26 @@ class _ContinueCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Episode ${item.episodeId.length > 8 ? item.episodeId.substring(0, 8) : item.episodeId}…',
+                  item.seriesTitle ?? 'Drama',
                   style: GoogleFonts.nunito(
                     color: textCol,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: 12,
                   ),
                   maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Ep ${item.episodeNumber ?? ''}: ${item.episodeTitle ?? ''}',
+                  style: GoogleFonts.sora(color: textSec, fontSize: 10),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
                 LinearProgressIndicator(
                   value: item.progressPct / 100,
-                  backgroundColor: cardHi,
+                  backgroundColor: border,
                   valueColor: const AlwaysStoppedAnimation<Color>(pink),
                   minHeight: 4,
                   borderRadius: BorderRadius.circular(2),
@@ -225,32 +243,78 @@ class _SavedDramaCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = drama.seriesId.length >= 4
-        ? drama.seriesId.substring(drama.seriesId.length - 4)
-        : drama.seriesId;
-
     return GestureDetector(
       onTap: () => context.push('/series/${drama.seriesId}'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cardHi,
-          borderRadius: BorderRadius.circular(10),
-        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            const Center(
-              child: Icon(Icons.movie_outlined, color: textDim, size: 28),
-            ),
+            // Poster or fallback
+            drama.coverUrl != null
+                ? Image(
+                    image: NetworkImage(drama.coverUrl!),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: cardHi,
+                      child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
+                    ),
+                  )
+                : Container(
+                    color: cardHi,
+                    child: const Icon(Icons.movie_outlined, color: textDim, size: 28),
+                  ),
+            // Title overlay at bottom
             Positioned(
-              bottom: 4,
+              bottom: 0,
               left: 0,
               right: 0,
-              child: Text(
-                '…$label',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.sora(color: textDim, fontSize: 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      bgDeep.withValues(alpha: 0.9),
+                      bgDeep.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+                child: Text(
+                  drama.title ?? 'Drama',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                  ),
+                ),
               ),
             ),
+            // VIP badge
+            if (drama.isVip)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    gradient: goldGrad,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'VIP',
+                    style: GoogleFonts.nunito(
+                      color: bgDeep,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -314,10 +378,20 @@ class _HistoryRow extends StatelessWidget {
           const Icon(Icons.play_circle_outline, color: textDim, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              'Episode ${item.episodeId.length > 8 ? item.episodeId.substring(0, 8) : item.episodeId}…',
-              style: GoogleFonts.sora(color: textSec, fontSize: 13),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.seriesTitle ?? 'Drama',
+                  style: GoogleFonts.sora(color: textCol, fontSize: 13, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'Ep ${item.episodeNumber ?? ''}: ${item.episodeTitle ?? ''}',
+                  style: GoogleFonts.sora(color: textSec, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),

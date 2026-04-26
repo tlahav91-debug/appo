@@ -17,7 +17,7 @@ class SavedDramaService {
     if (userId == null) return [];
     final res = await _client
         .from('saved_dramas')
-        .select()
+        .select('*, series:series_id(title, cover_url, total_episodes, is_vip)')
         .eq('user_id', userId)
         .order('saved_at', ascending: false);
     return List<Map<String, dynamic>>.from(res as List);
