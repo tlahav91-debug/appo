@@ -12,7 +12,7 @@ class HUD extends ConsumerWidget implements PreferredSizeWidget {
   const HUD({super.key});
 
   @override
-  Size get preferredSize => const Size.fromHeight(56);
+  Size get preferredSize => const Size.fromHeight(56 + 28); // status row + VIP bar slot
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,90 +38,128 @@ class _HudContent extends ConsumerWidget {
     final thresholds = ref.watch(fanLevelThresholdsProvider).valueOrNull ?? [];
     final fanLevel = FanLevel.fromProfile(profile.xp, profile.fanLevel, thresholds);
 
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      color: bgDeep.withOpacity(0.95),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: cardHi,
-              shape: BoxShape.circle,
-              border: Border.all(color: borderHi, width: 1.5),
-            ),
-            child: profile.avatarUrl != null
-                ? ClipOval(child: Image.network(profile.avatarUrl!, fit: BoxFit.cover))
-                : const Icon(Icons.person, color: textSec, size: 20),
-          ),
-          const SizedBox(width: 8),
-          // Level badge
-          Text(
-            'Lv.${profile.fanLevel}',
-            style: GoogleFonts.nunito(
-              color: gold,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
-          if (profile.dramaPassActive) ...[
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: () => context.push('/pass'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          color: bgDeep.withOpacity(0.95),
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  gradient: purpleGrad,
-                  borderRadius: BorderRadius.circular(4),
+                  color: cardHi,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: borderHi, width: 1.5),
                 ),
-                child: Text(
-                  'PASS',
-                  style: GoogleFonts.nunito(
-                    color: textCol,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 9,
+                child: profile.avatarUrl != null
+                    ? ClipOval(child: Image.network(profile.avatarUrl!, fit: BoxFit.cover))
+                    : const Icon(Icons.person, color: textSec, size: 20),
+              ),
+              const SizedBox(width: 8),
+              // Level badge
+              Text(
+                'Lv.${profile.fanLevel}',
+                style: GoogleFonts.nunito(
+                  color: gold,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+              if (profile.dramaPassActive) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => context.push('/pass'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      gradient: purpleGrad,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'PASS',
+                      style: GoogleFonts.nunito(
+                        color: textCol,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 6),
+              // XP bar — fraction computed from real thresholds
+              Container(
+                width: 80,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: fanLevel.progressFraction,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: purpleGrad,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-          const SizedBox(width: 6),
-          // XP bar — fraction computed from real thresholds
-          Container(
-            width: 80,
-            height: 6,
-            decoration: BoxDecoration(
-              color: surface,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: fanLevel.progressFraction,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: purpleGrad,
-                  borderRadius: BorderRadius.circular(3),
-                ),
+              const Spacer(),
+              // Coins
+              CurrencyDisplay(amount: profile.coins, emoji: '🪙', color: gold),
+              const SizedBox(width: 12),
+              // Gems
+              CurrencyDisplay(amount: profile.gems, emoji: '💎', color: cyan),
+              const SizedBox(width: 12),
+              // Mail icon with badge
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Text('📬', style: TextStyle(fontSize: 20)),
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '0',
+                        style: GoogleFonts.nunito(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(width: 12),
+              // Settings
+              GestureDetector(
+                onTap: () => _showSettings(context, ref),
+                child: const Icon(Icons.settings_outlined, color: textSec, size: 22),
+              ),
+            ],
           ),
-          const Spacer(),
-          // Coins
-          CurrencyDisplay(amount: profile.coins, emoji: '🪙', color: gold),
-          const SizedBox(width: 12),
-          // Gems
-          CurrencyDisplay(amount: profile.gems, emoji: '💎', color: cyan),
-          const SizedBox(width: 12),
-          // Settings
-          GestureDetector(
-            onTap: () => _showSettings(context, ref),
-            child: const Icon(Icons.settings_outlined, color: textSec, size: 22),
-          ),
-        ],
-      ),
+        ),
+        if (profile.dramaPassActive)
+          const _VipBar()
+        else
+          const SizedBox(height: 28),
+      ],
     );
   }
 
@@ -163,6 +201,46 @@ class _HudContent extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _VipBar extends StatelessWidget {
+  final int vipTier;
+
+  const _VipBar({this.vipTier = 1});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      height: 20,
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Stack(children: [
+        FractionallySizedBox(
+          widthFactor: 1.0, // 100% for tier 1
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: pinkFull,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        Center(
+          child: Text(
+            'DRAMA PASS ACTIVE',
+            style: GoogleFonts.nunito(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }

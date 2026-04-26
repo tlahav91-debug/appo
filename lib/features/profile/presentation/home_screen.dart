@@ -24,6 +24,56 @@ class HomeScreen extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
+              // Events + Journey quick-access row
+              SizedBox(
+                height: 80,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(bottom: 0),
+                  child: Row(
+                    children: [
+                      // EventsCard
+                      GestureDetector(
+                        onTap: () => context.push('/events'),
+                        child: Container(
+                          width: 160,
+                          height: 80,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF1A0A2E), Color(0xFFFF2D78)]),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Text('⚡', style: TextStyle(fontSize: 28)),
+                              Text('Live Events', style: GoogleFonts.nunito(color: textCol, fontSize: 13, fontWeight: FontWeight.w700)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                      // JourneyCard
+                      GestureDetector(
+                        onTap: () => context.push('/journey'),
+                        child: Container(
+                          width: 160,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF0A1A2E), Color(0xFF4A90D9)]),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Text('🗺️', style: TextStyle(fontSize: 28)),
+                              Text('Journey', style: GoogleFonts.nunito(color: textCol, fontSize: 13, fontWeight: FontWeight.w700)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // Watch Club card
               if (clubAsync.hasValue)
                 club != null

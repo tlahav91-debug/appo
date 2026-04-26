@@ -93,6 +93,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           clubId: state.pathParameters['clubId']!,
         ),
       ),
+      GoRoute(
+        path: '/events',
+        builder: (_, __) => const EventsScreen(),
+      ),
+      GoRoute(
+        path: '/journey',
+        builder: (_, __) => const JourneyScreen(),
+      ),
+      GoRoute(
+        path: '/leaderboard',
+        builder: (_, __) => const LeaderboardScreen(),
+      ),
     ],
   );
 });
