@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
@@ -19,6 +21,8 @@ class EpisodeDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
+  bool _done = false;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +33,24 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
         'episode_number': widget.episode.episodeNumber,
       });
     });
+  }
+
+  void _onDone() {
+    if (mounted) setState(() => _done = true);
+  }
+
+  void _showCompletionModal() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black87,
+      transitionDuration: const Duration(milliseconds: 400),
+      transitionBuilder: (_, anim, __, child) => ScaleTransition(
+        scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+      pageBuilder: (ctx, _, __) => _SeriesCompletionModal(episode: widget.episode),
+    );
   }
 
   @override
@@ -88,16 +110,35 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _ChoiceBar(episode: widget.episode, choicesAsync: choicesAsync),
+      bottomNavigationBar: _done
+          ? _NextEpisodeBar(
+              currentEpisode: widget.episode,
+              onSeriesComplete: _showCompletionModal,
+            )
+          : _ChoiceBar(
+              episode: widget.episode,
+              choicesAsync: choicesAsync,
+              onDone: _onDone,
+            ),
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// _ChoiceBar — modified to support "Continue →" for episodes with no choices
+// and to await ChoiceSheet then call onDone.
+// ---------------------------------------------------------------------------
+
 class _ChoiceBar extends StatelessWidget {
   final Episode episode;
   final AsyncValue choicesAsync;
+  final VoidCallback onDone;
 
-  const _ChoiceBar({required this.episode, required this.choicesAsync});
+  const _ChoiceBar({
+    required this.episode,
+    required this.choicesAsync,
+    required this.onDone,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -105,34 +146,62 @@ class _ChoiceBar extends StatelessWidget {
       color: surface,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: choicesAsync.when(
-        data: (choices) => GestureDetector(
-          onTap: choices.isEmpty
-              ? null
-              : () => ChoiceSheet.show(
-                    context,
-                    episodeId: episode.id,
-                    choices: choices,
+        data: (choices) {
+          if (choices.isEmpty) {
+            // No choices — show "Continue →" that marks episode done
+            return GestureDetector(
+              onTap: onDone,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: pinkFull,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Text(
+                    'Continue →',
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
                   ),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              gradient: choices.isEmpty ? null : pinkFull,
-              color: choices.isEmpty ? cardHi : null,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Center(
-              child: Text(
-                choices.isEmpty ? 'No choices available' : 'Make Your Choice',
-                style: GoogleFonts.nunito(
-                  color: choices.isEmpty ? textDim : textCol,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
+                ),
+              ),
+            );
+          }
+
+          // Has choices — open ChoiceSheet then mark done on close
+          return GestureDetector(
+            onTap: () async {
+              await ChoiceSheet.show(
+                context,
+                episodeId: episode.id,
+                choices: choices,
+              );
+              if (context.mounted) onDone();
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                gradient: pinkFull,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Text(
+                  'Make Your Choice',
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
         loading: () => Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -146,6 +215,330 @@ class _ChoiceBar extends StatelessWidget {
           ),
         ),
         error: (_, __) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _NextEpisodeBar — auto-advance countdown bar shown after episode is done
+// ---------------------------------------------------------------------------
+
+class _NextEpisodeBar extends ConsumerStatefulWidget {
+  final Episode currentEpisode;
+  final VoidCallback onSeriesComplete;
+
+  const _NextEpisodeBar({
+    required this.currentEpisode,
+    required this.onSeriesComplete,
+  });
+
+  @override
+  ConsumerState<_NextEpisodeBar> createState() => _NextEpisodeBarState();
+}
+
+class _NextEpisodeBarState extends ConsumerState<_NextEpisodeBar> {
+  Timer? _timer;
+  int _countdown = 5;
+  Episode? _nextEp;
+  bool _isLastEpisode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Defer episode lookup until first frame so ref is available
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
+  }
+
+  void _init() {
+    final allEpisodes =
+        ref.read(episodesProvider(widget.currentEpisode.seriesId)).valueOrNull ?? [];
+    final nextEp = allEpisodes.cast<Episode?>().firstWhere(
+      (e) => e!.episodeNumber == widget.currentEpisode.episodeNumber + 1,
+      orElse: () => null,
+    );
+    if (!mounted) return;
+    setState(() {
+      _nextEp = nextEp;
+      _isLastEpisode = nextEp == null;
+    });
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() => _countdown--);
+      if (_countdown <= 0) {
+        t.cancel();
+        if (_isLastEpisode) {
+          widget.onSeriesComplete();
+        } else if (_nextEp != null) {
+          _goToNext(_nextEp!);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _goToNext(Episode nextEp) {
+    _timer?.cancel();
+    context.push('/series/${nextEp.seriesId}/episode/${nextEp.id}', extra: nextEp);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: surface,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_isLastEpisode) ...[
+            // Series complete state
+            Text(
+              'Series Complete! 🎉',
+              style: GoogleFonts.nunito(
+                color: textCol,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                _timer?.cancel();
+                widget.onSeriesComplete();
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: pinkFull,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Text(
+                    'View Completion Reward',
+                    style: GoogleFonts.nunito(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            // Next episode countdown
+            Row(
+              children: [
+                Text(
+                  'Up Next',
+                  style: GoogleFonts.sora(color: textDim, fontSize: 11),
+                ),
+                const Spacer(),
+                Text(
+                  '$_countdown s',
+                  style: GoogleFonts.nunito(
+                    color: gold,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_nextEp != null) ...[
+              Text(
+                _nextEp!.title,
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                'Episode ${_nextEp!.episodeNumber}',
+                style: GoogleFonts.sora(color: textSec, fontSize: 12),
+              ),
+            ] else ...[
+              // Episodes list still loading
+              Text(
+                'Loading...',
+                style: GoogleFonts.sora(color: textDim, fontSize: 13),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _nextEp != null ? () => _goToNext(_nextEp!) : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: pinkFull,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Next Episode →',
+                          style: GoogleFonts.nunito(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () {
+                    _timer?.cancel();
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      border: Border.all(color: border),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      'Back to Series',
+                      style: GoogleFonts.nunito(
+                        color: textSec,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _SeriesCompletionModal — full-screen celebration dialog
+// ---------------------------------------------------------------------------
+
+class _SeriesCompletionModal extends StatelessWidget {
+  final Episode episode;
+
+  const _SeriesCompletionModal({required this.episode});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.fromLTRB(28, 36, 28, 36),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [bgDeep, surface],
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉', style: TextStyle(fontSize: 64)),
+                const SizedBox(height: 16),
+                Text(
+                  'Series Complete!',
+                  style: GoogleFonts.nunito(
+                    color: gold,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'You\'ve finished all episodes.',
+                  style: GoogleFonts.sora(color: textSec, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: gold.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '+50 XP Bonus',
+                    style: GoogleFonts.nunito(
+                      color: gold,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                // Find Another Series
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go('/discover');
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: pinkFull,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Find Another Series',
+                        style: GoogleFonts.nunito(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.go('/');
+                  },
+                  child: Text(
+                    'Back to Home',
+                    style: GoogleFonts.sora(color: textDim, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
