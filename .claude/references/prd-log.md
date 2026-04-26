@@ -24,3 +24,7 @@
 | PRD-030 | Episode End Auto-Advance | ✅ Closed | b72c104 | QA fixes: C-1 context.go('/discover') route not found → /home; H-1 _init() now awaits episodesProvider.future to avoid empty list on direct navigation |
 | PRD-031 | Series Completion Modal | ✅ Closed | b72c104 | Covered by PRD-030 QA fixes (same file) |
 | PRD-032 | Episode Reactions | ✅ Closed | b72c104 | QA fix: M-1 ReactionRow moved outside synopsis guard — always visible |
+| PRD-033 | Profile Edit Screen | ✅ Closed | 37c3d10 | QA fixes: H-1 avatar preview live update (addListener); H-2 clearing avatar sets avatar_url=null explicitly |
+| PRD-034 | Push Notification Soft-Ask | ✅ Closed | 37c3d10 | QA fixes: C-1 _softAskInProgress guard prevents concurrent soft-ask; H-1 pre-auth check extended to all platforms |
+| PRD-035 | Episode Progress Indicators | ✅ Closed | 37c3d10 | QA fixes: H-1 composite index on watch_progress(user_id,series_id); H-2 invalidate seriesProgressProvider in _onDone() |
+| PRD-036 | Series Ratings | ✅ Closed | 37c3d10 | QA fixes: C-1 context.go('/') → /home in completion modal; H-1 myRating cast via (as num?)?.toInt() |
