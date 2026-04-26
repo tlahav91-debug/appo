@@ -130,12 +130,13 @@ class _StreakCard extends StatelessWidget {
             children: List.generate(7, (i) {
               final dayNum = i + 1;
               final isDone = i < status.currentStreak;
-              final isToday = dayNum == status.currentStreak + (status.claimedToday ? 0 : 1);
+              // Highlight today's unclaimed slot (BUG-027-H-2 fix)
+              final isActiveToday = !status.claimedToday && dayNum == status.currentStreak + 1;
               final reward = streakRewards[i];
               return _DayTile(
                 day: dayNum,
                 isDone: isDone,
-                isToday: isToday && !status.claimedToday,
+                isToday: isActiveToday,
                 coins: reward.coins,
                 gems: reward.gems,
               );

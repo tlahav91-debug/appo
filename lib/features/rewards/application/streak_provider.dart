@@ -78,13 +78,10 @@ final streakStatusProvider = FutureProvider<StreakStatus>((ref) async {
     }
   }
 
-  // Build week history (which days in current streak cycle are claimed)
+  // Build week history: indices 0…currentStreak-1 are completed (BUG-027-M-1 fix)
   final weekHistory = List.filled(7, false);
-  if (currentStreak > 0) {
-    final streakStart = claimedToday ? currentStreak : currentStreak;
-    for (int i = 0; i < (claimedToday ? currentStreak : currentStreak); i++) {
-      if (i < 7) weekHistory[i] = true;
-    }
+  for (int i = 0; i < currentStreak && i < 7; i++) {
+    weekHistory[i] = true;
   }
 
   return StreakStatus(

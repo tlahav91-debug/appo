@@ -85,7 +85,7 @@ class _EpisodeList extends ConsumerWidget {
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               if (race != null && index == 0) {
-                return _RaceBanner(race: race, ref: ref);
+                return _RaceBanner(race: race);
               }
               if (hasCharacters && index == (race != null ? 1 : 0)) {
                 return _CharactersBanner(seriesId: seriesId);
@@ -107,7 +107,7 @@ class _SeriesHeroHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (series == null) return const SizedBox(height: 200);
+    if (series == null) return const SizedBox(height: 200, child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: pink, strokeWidth: 2))));
     return Stack(
       children: [
         // Hero image
@@ -311,13 +311,12 @@ class _CharactersBanner extends StatelessWidget {
 // H-3 fix: ConsumerWidget so it can check participation status for correct subtitle
 class _RaceBanner extends ConsumerWidget {
   final Race race;
-  final WidgetRef ref;
 
-  const _RaceBanner({required this.race, required this.ref});
+  const _RaceBanner({required this.race});
 
   @override
-  Widget build(BuildContext context, WidgetRef widgetRef) {
-    final isParticipant = widgetRef.watch(raceParticipantProvider(race.id)).valueOrNull ?? false;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isParticipant = ref.watch(raceParticipantProvider(race.id)).valueOrNull ?? false;
 
     return GestureDetector(
       onTap: () => context.push('/race/${race.id}'),

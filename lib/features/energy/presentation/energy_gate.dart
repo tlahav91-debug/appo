@@ -211,8 +211,9 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                   gradient: goldGrad,
                   width: double.infinity,
                   onPressed: () {
+                    final router = GoRouter.of(context);
                     Navigator.pop(context);
-                    context.push('/shop/gems');
+                    router.push('/shop/gems');
                   },
                   child: Text(
                     'Get Gems',

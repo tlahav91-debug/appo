@@ -40,7 +40,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
       body: Stack(
         children: [
           const Stars(),
-          Column(
+          Positioned.fill(
+            child: Column(
             children: [
               // Header
               Padding(
@@ -101,6 +102,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                 ),
               ),
             ],
+          ),
           ),
         ],
       ),

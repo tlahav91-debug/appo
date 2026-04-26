@@ -33,15 +33,17 @@ serve(async (req) => {
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
 
   const userId = user.id;
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const tomorrow = new Date(now.getTime() + 86400000).toISOString().split("T")[0];
 
-  // Check already claimed today
+  // Check already claimed today — use exclusive tomorrow boundary (BUG-027-H-1 fix)
   const { data: todayRow } = await supabaseAdmin
     .from("daily_check_ins")
     .select("id")
     .eq("user_id", userId)
     .gte("checked_in_at", `${today}T00:00:00Z`)
-    .lt("checked_in_at", `${today}T23:59:59Z`)
+    .lt("checked_in_at", `${tomorrow}T00:00:00Z`)
     .maybeSingle();
 
   if (todayRow) return json({ error: "Already claimed today" }, 409);
@@ -58,7 +60,7 @@ serve(async (req) => {
   let streakDay = 1;
   if (lastRow) {
     const lastDate = new Date(lastRow.checked_in_at).toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().split("T")[0];
     if (lastDate === yesterday) {
       streakDay = lastRow.streak_day < 7 ? lastRow.streak_day + 1 : 1;
     }
@@ -66,10 +68,10 @@ serve(async (req) => {
 
   const reward = STREAK_REWARDS[streakDay - 1];
 
-  // Get drama pass status for double bonus
+  // Read drama_pass_active only — do NOT read coins/gems to avoid stale read
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("drama_pass_active, coins, gems")
+    .select("drama_pass_active")
     .eq("id", userId)
     .single();
 
@@ -77,21 +79,24 @@ serve(async (req) => {
   const coinsEarned = reward.coins * multiplier;
   const gemsEarned = reward.gems * multiplier;
 
-  // Insert check-in
+  // Insert check-in — unique index on (user_id, checked_in_at::date) guards against race
   const { error: insertErr } = await supabaseAdmin
     .from("daily_check_ins")
     .insert({ user_id: userId, streak_day: streakDay, reward_coins: coinsEarned, reward_gems: gemsEarned });
 
-  if (insertErr) return json({ error: "Claim failed" }, 500);
+  if (insertErr) {
+    // Unique violation (23505) = concurrent claim — return 409 not 500 (BUG-027-H-1 fix)
+    const status = (insertErr as { code?: string }).code === "23505" ? 409 : 500;
+    const msg = status === 409 ? "Already claimed today" : "Claim failed";
+    return json({ error: msg }, status);
+  }
 
-  // Credit currency
-  await supabaseAdmin
-    .from("profiles")
-    .update({
-      coins: (profile?.coins ?? 0) + coinsEarned,
-      gems: (profile?.gems ?? 0) + gemsEarned,
-    })
-    .eq("id", userId);
+  // Atomic increment — avoids lost-update race condition (BUG-027-C-1 fix)
+  await supabaseAdmin.rpc("increment_currency", {
+    uid: userId,
+    d_coins: coinsEarned,
+    d_gems: gemsEarned,
+  });
 
   return json({ claimed: true, streak_day: streakDay, coins_earned: coinsEarned, gems_earned: gemsEarned });
 });

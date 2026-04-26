@@ -44,7 +44,7 @@ final raceLeaderboardProvider =
   final raceData = await Supabase.instance.client
       .from('races')
       .select('id, title')
-      .order('created_at', ascending: false)
+      .order('starts_at', ascending: false)
       .limit(1)
       .maybeSingle();
 
@@ -57,7 +57,7 @@ final raceLeaderboardProvider =
 
   final data = await Supabase.instance.client
       .from('race_participants')
-      .select('user_id, episodes_watched, profiles!user_id(username, avatar_url, fan_level)')
+      .select('user_id, episodes_watched, profiles(username, avatar_url, fan_level)')
       .eq('race_id', raceId)
       .order('episodes_watched', ascending: false)
       .limit(100);
