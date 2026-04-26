@@ -29,16 +29,19 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   late final PageController _pageController;
   Timer? _timer;
+  // Updated when featuredSeriesProvider data arrives; guards timer from
+  // animating to out-of-bounds page when fewer than 5 series are returned.
+  int _featuredCount = 1;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _timer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (_pageController.hasClients) {
+      if (_pageController.hasClients && _featuredCount > 1) {
         final next = (_pageController.page?.round() ?? 0) + 1;
         _pageController.animateToPage(
-          next % 5,
+          next % _featuredCount,
           duration: const Duration(milliseconds: 600),
           curve: Curves.easeInOut,
         );
@@ -58,7 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.invalidate(allSeriesForGridProvider);
     ref.invalidate(inProgressProvider);
     ref.invalidate(userClubProvider);
-    // Allow providers to rebuild
+    ref.invalidate(activeQuestsProvider);
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 
@@ -93,10 +96,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: featuredAsync.when(
                     loading: () => const _HeroCarouselSkeleton(),
                     error: (_, __) => const _HeroCarouselSkeleton(),
-                    data: (series) => _HeroCarousel(
-                      seriesList: series,
-                      pageController: _pageController,
-                    ),
+                    data: (series) {
+                      _featuredCount = series.isEmpty ? 1 : series.length;
+                      return _HeroCarousel(
+                        seriesList: series,
+                        pageController: _pageController,
+                      );
+                    },
                   ),
                 ),
 
@@ -116,17 +122,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             icon: '⚡',
                             label: 'Live Events',
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF1A0A2E), Color(0xFFFF2D78)],
+                              colors: [bgDeep, pink],
                             ),
                             onTap: () => context.push('/events'),
                           ),
                           const SizedBox(width: 12),
-                          // Journey card
                           _QuickLinkCard(
                             icon: '🗺️',
                             label: 'Journey',
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF0A1A2E), Color(0xFF4A90D9)],
+                              colors: [bgDeep, cyan],
                             ),
                             onTap: () => context.push('/journey'),
                           ),

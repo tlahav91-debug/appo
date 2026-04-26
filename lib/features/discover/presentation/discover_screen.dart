@@ -38,10 +38,10 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         backgroundColor: card,
         onRefresh: () async {
           ref.invalidate(allSeriesProvider);
-          // Wait for the new data to load
-          await ref.read(allSeriesProvider.future);
+          await ref.read(allSeriesProvider.future).catchError((_) {});
         },
         child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // ── AppBar ──────────────────────────────────────────────────────
             SliverAppBar(
@@ -344,7 +344,7 @@ class _SeriesPosterCard extends StatelessWidget {
                   child: Text(
                     'VIP',
                     style: GoogleFonts.nunito(
-                      color: Colors.white,
+                      color: bgDeep,
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
                     ),

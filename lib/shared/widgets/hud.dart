@@ -119,33 +119,7 @@ class _HudContent extends ConsumerWidget {
               CurrencyDisplay(amount: profile.gems, emoji: '💎', color: cyan),
               const SizedBox(width: 12),
               // Mail icon with badge
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Text('📬', style: TextStyle(fontSize: 20)),
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '0',
-                        style: GoogleFonts.nunito(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const Text('📬', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
               // Settings
               GestureDetector(

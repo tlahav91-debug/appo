@@ -35,10 +35,12 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("saved_dramas").delete().eq("id", existing.id);
+    const { error: deleteError } = await supabase.from("saved_dramas").delete().eq("id", existing.id);
+    if (deleteError) return json({ error: deleteError.message }, 500);
     return json({ saved: false });
   } else {
-    await supabase.from("saved_dramas").insert({ user_id: user.id, series_id });
+    const { error: insertError } = await supabase.from("saved_dramas").insert({ user_id: user.id, series_id });
+    if (insertError) return json({ error: insertError.message }, 500);
     return json({ saved: true });
   }
 });

@@ -2,8 +2,8 @@
 CREATE TABLE IF NOT EXISTS watch_progress (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  series_id      UUID NOT NULL,
-  episode_id     UUID NOT NULL,
+  series_id      UUID NOT NULL REFERENCES public.series(id) ON DELETE CASCADE,
+  episode_id     UUID NOT NULL REFERENCES public.episodes(id) ON DELETE CASCADE,
   progress_pct   SMALLINT NOT NULL DEFAULT 0 CHECK (progress_pct BETWEEN 0 AND 100),
   completed      BOOLEAN NOT NULL DEFAULT false,
   last_watched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -24,7 +24,7 @@ CREATE POLICY "user can manage own watch progress"
 CREATE TABLE IF NOT EXISTS saved_dramas (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  series_id  UUID NOT NULL,
+  series_id  UUID NOT NULL REFERENCES public.series(id) ON DELETE CASCADE,
   saved_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, series_id)
 );
