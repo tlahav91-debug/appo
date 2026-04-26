@@ -185,6 +185,14 @@ class _HudContent extends ConsumerWidget {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.card_giftcard, color: cyan),
+              title: Text('Invite Friends 🎁', style: GoogleFonts.sora(color: textCol, fontSize: 14)),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/referral');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.edit_outlined, color: cyan),
               title: Text(
                 'Edit Profile',

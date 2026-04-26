@@ -87,6 +87,7 @@ class Profile {
     DateTime? lastPassBonusAt,
     DateTime? starterPackPurchasedAt,
     String? referralCode,
+    List<String>? genrePreferences,
   }) =>
       Profile(
         id: id,
@@ -102,6 +103,7 @@ class Profile {
         lastPassBonusAt: lastPassBonusAt ?? this.lastPassBonusAt,
         starterPackPurchasedAt: starterPackPurchasedAt ?? this.starterPackPurchasedAt,
         referralCode: referralCode ?? this.referralCode,
+        genrePreferences: genrePreferences ?? this.genrePreferences,
       );
 
   bool get passBonusClaimableToday {

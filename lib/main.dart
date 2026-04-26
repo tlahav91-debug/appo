@@ -8,6 +8,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/onboarding/application/onboarding_provider.dart';
 
 // Must be a top-level function; called by FCM when the app is terminated
 @pragma('vm:entry-point')
@@ -24,6 +25,7 @@ Future<void> main() async {
   assert(revenuecatKey.isNotEmpty, 'REVENUECAT_KEY must be set via --dart-define');
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  await incrementLaunchCount();
   await MobileAds.instance.initialize();
   await Purchases.configure(PurchasesConfiguration(revenuecatKey));
 

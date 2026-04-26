@@ -14,6 +14,7 @@ import '../../events/application/lava_quest_provider.dart';
 import '../../mylist/application/watch_progress_provider.dart';
 import '../../mylist/domain/watch_progress.dart';
 import '../application/home_provider.dart';
+import '../application/profile_provider.dart';
 
 // ---------------------------------------------------------------------------
 // HomeScreen
@@ -205,23 +206,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
                   ),
-                  data: (series) => SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 0.68,
+                  data: (series) {
+                    final prefs = ref
+                            .watch(profileProvider)
+                            .valueOrNull
+                            ?.genrePreferences ??
+                        [];
+                    if (prefs.isNotEmpty) {
+                      series = List<HomeSeries>.from(series);
+                      series.sort((a, b) {
+                        final aMatch =
+                            prefs.contains(a.genre) ? 0 : 1;
+                        final bMatch =
+                            prefs.contains(b.genre) ? 0 : 1;
+                        return aMatch.compareTo(bMatch);
+                      });
+                    }
+                    return SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 0.68,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              _GridSeriesCard(series: series[index]),
+                          childCount: series.length,
+                        ),
                       ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) =>
-                            _GridSeriesCard(series: series[index]),
-                        childCount: series.length,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
 
                 // Bottom padding

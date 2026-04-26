@@ -11,6 +11,7 @@ class HomeSeries {
   final bool isVip;
   final int totalEpisodes;
   final String? description;
+  final String? genre;
 
   const HomeSeries({
     required this.id,
@@ -19,6 +20,7 @@ class HomeSeries {
     required this.isVip,
     required this.totalEpisodes,
     this.description,
+    this.genre,
   });
 
   factory HomeSeries.fromJson(Map<String, dynamic> j) => HomeSeries(
@@ -28,6 +30,7 @@ class HomeSeries {
         isVip: j['is_vip'] as bool? ?? false,
         totalEpisodes: (j['total_episodes'] as num?)?.toInt() ?? 0,
         description: j['description'] as String?,
+        genre: j['genre'] as String?,
       );
 }
 
@@ -51,7 +54,7 @@ final featuredSeriesProvider = FutureProvider<List<HomeSeries>>((ref) async {
 final allSeriesForGridProvider = FutureProvider<List<HomeSeries>>((ref) async {
   final data = await Supabase.instance.client
       .from('series')
-      .select('id, title, cover_url, is_vip, total_episodes')
+      .select('id, title, cover_url, is_vip, total_episodes, genre')
       .order('created_at', ascending: false);
   return (data as List)
       .map((e) => HomeSeries.fromJson(e as Map<String, dynamic>))

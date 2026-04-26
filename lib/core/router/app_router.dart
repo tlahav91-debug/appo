@@ -13,6 +13,8 @@ import '../../features/profile/presentation/events_screen.dart';
 import '../../features/profile/presentation/journey_screen.dart';
 import '../../features/profile/presentation/leaderboard_screen.dart';
 import '../../features/profile/presentation/profile_edit_screen.dart';
+import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/referral/presentation/referral_screen.dart';
 import '../../features/pass/presentation/drama_pass_screen.dart';
 import '../../features/race/presentation/race_screen.dart';
 import '../../features/shop/presentation/gem_shop_screen.dart';
@@ -41,6 +43,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
       GoRoute(path: '/home', builder: (_, __) => const AppShell()),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: '/series/:seriesId',
         builder: (_, state) => SeriesScreen(
@@ -110,6 +116,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile/edit',
         builder: (_, __) => const ProfileEditScreen(),
+      ),
+      GoRoute(
+        path: '/referral',
+        builder: (context, state) => const ReferralScreen(),
       ),
     ],
   );

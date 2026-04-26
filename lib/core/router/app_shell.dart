@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
+import '../../features/onboarding/application/onboarding_provider.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/presentation/home_screen.dart';
 import '../../features/profile/presentation/rewards_screen.dart';
@@ -21,6 +23,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _selectedIndex = 0;
   bool _starterPackOffered = false;
+  bool _onboardingChecked = false;
 
   static const _screens = [
     HomeScreen(),
@@ -41,6 +44,16 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider).valueOrNull;
+    final onboardingGuard = ref.watch(onboardingGuardProvider);
+
+    if (!_onboardingChecked && onboardingGuard.valueOrNull == true) {
+      _onboardingChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/onboarding');
+      });
+    } else if (onboardingGuard.hasValue) {
+      _onboardingChecked = true;
+    }
 
     if (profile != null && !_starterPackOffered) {
       _starterPackOffered = true;
