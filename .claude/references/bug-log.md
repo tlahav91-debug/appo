@@ -1,5 +1,11 @@
 # Bug Log
 
+## PRD-016 — PostHog Analytics
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-016-M1 | session_started fires on every profileProvider invalidation (not just cold start) | Medium | ✅ Fixed — _hasTrackedSession flag on ProfileNotifier |
+
 ## PRD-015 — Fan Level + XP
 
 | ID | Title | Severity | Status |
