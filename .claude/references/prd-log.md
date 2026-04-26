@@ -31,4 +31,7 @@
 | PRD-037 | IAP / Gem Store | ✅ Closed | ee5238b | Clean — in_app_purchase, validate-iap-receipt Edge Fn, GemStoreScreen, iap_receipts migration |
 | PRD-038 | Rewarded Ads | ✅ Closed | 1364469 | Clean — increment-energy Edge Fn, RewardedAdService, _AdButton in EnergyGate (goldGrad, 3/day cap) |
 | PRD-039 | Referral System | ✅ Closed | 04a0ab0 | Clean — redeem-referral Edge Fn, referral_code trigger, ReferralScreen, hud invite tile |
-| PRD-040 | Onboarding Flow | ✅ Closed | 04a0ab0 | Clean — genre quiz on 2nd session, genre_preferences migration, feed reorder, AppShell guard |
+| PRD-040 | Onboarding Flow | ✅ Closed | 443e10a | QA fix: M-2 _skip() now invalidates profileProvider for consistency |
+| PRD-037 | IAP / Gem Store | ✅ Closed | 443e10a | QA fixes: C-1 all RevenueCat/purchases_flutter removed (5 files); H-2 cancelled completePurchase; H-3 lastValidationError surfaced |
+| PRD-038 | Rewarded Ads | ✅ Closed | 443e10a | QA fixes: C-1 grantAdEnergy try-catch in _AdButton; H-2 invalidate adEnergyCapProvider after grant |
+| PRD-039 | Referral System | ✅ Closed | 443e10a | QA fixes: C-1 referral code → 12 chars + retry loop (migration 031); H-1 increment_currency errors checked in redeem-referral |
