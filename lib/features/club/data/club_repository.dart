@@ -66,10 +66,11 @@ class ClubRepository {
     yield await fetchLeaderboard(clubId);
 
     final ctrl = StreamController<void>.broadcast();
+    final userId = _db.auth.currentUser?.id;
 
     try {
-      final channel = _db.channel('club_members_$clubId');
-      channel
+      final memberChannel = _db.channel('club_members_$clubId');
+      memberChannel
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
             schema: 'public',
@@ -83,13 +84,32 @@ class ClubRepository {
           )
           .subscribe();
 
+      // Refresh when the current user watches an episode (RLS only delivers
+      // their own rows, so other members' scores update on next membership event
+      // or when the screen is revisited — acceptable for Medium severity)
+      final choiceChannel = userId != null
+          ? (_db.channel('my_choices_${userId}_$clubId')
+                ..onPostgresChanges(
+                  event: PostgresChangeEvent.insert,
+                  schema: 'public',
+                  table: 'user_episode_choices',
+                  filter: PostgresChangeFilter(
+                    type: PostgresChangeFilterType.eq,
+                    column: 'user_id',
+                    value: userId,
+                  ),
+                  callback: (_) => ctrl.add(null),
+                ).subscribe())
+          : null;
+
       try {
         await for (final _ in ctrl.stream) {
           yield await fetchLeaderboard(clubId);
         }
       } finally {
         await ctrl.close();
-        _db.removeChannel(channel);
+        _db.removeChannel(memberChannel);
+        if (choiceChannel != null) _db.removeChannel(choiceChannel);
       }
     } catch (_) {
       await ctrl.close();
