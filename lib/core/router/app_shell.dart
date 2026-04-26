@@ -7,7 +7,7 @@ import '../../features/profile/presentation/home_screen.dart';
 import '../../features/profile/presentation/rewards_screen.dart';
 import '../../features/discover/presentation/discover_screen.dart';
 import '../../features/mylist/presentation/my_list_screen.dart';
-import '../../features/meta/presentation/meta_placeholder_screen.dart';
+import '../../features/meta/presentation/meta_world_screen.dart';
 import '../../features/shop/application/starter_pack_provider.dart';
 import '../../shared/widgets/starter_pack_sheet.dart';
 
@@ -27,7 +27,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     DiscoverScreen(),
     MyListScreen(),
     RewardsScreen(),
-    MetaPlaceholderScreen(),
+    MetaWorldScreen(),
   ];
 
   static const _tabs = [

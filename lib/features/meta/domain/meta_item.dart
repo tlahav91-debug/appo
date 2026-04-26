@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import '../../../core/theme/tokens.dart';
-
 enum MetaItemType { room, outfit, mood }
 
 class MetaItem {
