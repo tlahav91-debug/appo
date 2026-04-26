@@ -102,9 +102,9 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  ReactionRow(episodeId: widget.episode.id),
-                  const SizedBox(height: 100),
                 ],
+                ReactionRow(episodeId: widget.episode.id),
+                const SizedBox(height: 100),
               ]),
             ),
           ),
@@ -250,9 +250,11 @@ class _NextEpisodeBarState extends ConsumerState<_NextEpisodeBar> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
-  void _init() {
-    final allEpisodes =
-        ref.read(episodesProvider(widget.currentEpisode.seriesId)).valueOrNull ?? [];
+  Future<void> _init() async {
+    // Force-load episodes in case user navigated here directly (BUG-030-H-1 fix)
+    final allEpisodes = await ref.read(
+      episodesProvider(widget.currentEpisode.seriesId).future,
+    );
     final nextEp = allEpisodes.cast<Episode?>().firstWhere(
       (e) => e!.episodeNumber == widget.currentEpisode.episodeNumber + 1,
       orElse: () => null,
@@ -503,7 +505,7 @@ class _SeriesCompletionModal extends StatelessWidget {
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
-                    context.go('/discover');
+                    context.go('/home');
                   },
                   child: Container(
                     width: double.infinity,

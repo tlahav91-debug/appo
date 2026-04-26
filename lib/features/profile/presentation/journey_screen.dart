@@ -363,7 +363,7 @@ class _MilestoneList extends StatelessWidget {
                   m.emoji,
                   style: TextStyle(
                     fontSize: 20,
-                    color: m.unlocked ? null : const Color(0xFF333333),
+                    color: m.unlocked ? null : textDim,
                   ),
                 ),
                 const SizedBox(width: 14),
