@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
@@ -23,6 +24,17 @@ Future<void> main() async {
 
   await MobileAds.instance.initialize();
   await Purchases.configure(PurchasesConfiguration(revenuecatKey));
+
+  const posthogKey = String.fromEnvironment('POSTHOG_API_KEY');
+  if (posthogKey.isNotEmpty) {
+    const posthogHost = String.fromEnvironment(
+      'POSTHOG_HOST',
+      defaultValue: 'https://app.posthog.com',
+    );
+    final config = PostHogConfig(posthogKey);
+    config.host = posthogHost;
+    await PostHog().setup(config);
+  }
 
   runApp(const ProviderScope(child: DramaPlayApp()));
 }

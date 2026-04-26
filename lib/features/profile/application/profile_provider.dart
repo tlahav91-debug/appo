@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../data/profile_repository.dart';
 import '../domain/fan_level.dart';
 import '../domain/profile.dart';
@@ -39,6 +40,7 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
         try {
           final live = await repo.fetchProfile(userId);
           state = AsyncValue.data(live);
+          _identifyAndTrack(userId, live);
           _subscribeRealtime(userId, repo);
           _syncPassEntitlement(userId);
           _claimDailyPassBonusIfEligible(live);
@@ -48,10 +50,20 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     }
 
     final live = await repo.fetchProfile(userId);
+    _identifyAndTrack(userId, live);
     _subscribeRealtime(userId, repo);
     _syncPassEntitlement(userId);
     _claimDailyPassBonusIfEligible(live);
     return live;
+  }
+
+  void _identifyAndTrack(String userId, Profile profile) {
+    final analytics = ref.read(analyticsProvider);
+    analytics.identify(userId, {
+      'fan_level': profile.fanLevel,
+      'drama_pass_active': profile.dramaPassActive,
+    });
+    analytics.capture('session_started');
   }
 
   void _subscribeRealtime(String userId, ProfileRepository repo) {
@@ -99,6 +111,7 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     _realtimeSub = null;
     await repo.clearCache();
     await Purchases.logOut();
+    ref.read(analyticsProvider).reset();
     await Supabase.instance.client.auth.signOut();
     ref.invalidateSelf();
   }

@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/choice_sheet.dart';
 import '../application/episodes_provider.dart';
 import '../domain/episode.dart';
 
-class EpisodeDetailScreen extends ConsumerWidget {
+class EpisodeDetailScreen extends ConsumerStatefulWidget {
   final Episode episode;
 
   const EpisodeDetailScreen({super.key, required this.episode});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final choicesAsync = ref.watch(episodeChoicesProvider(episode.id));
+  ConsumerState<EpisodeDetailScreen> createState() => _EpisodeDetailScreenState();
+}
+
+class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsProvider).capture('episode_viewed', properties: {
+        'episode_id': widget.episode.id,
+        'series_id': widget.episode.seriesId,
+        'episode_number': widget.episode.episodeNumber,
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final choicesAsync = ref.watch(episodeChoicesProvider(widget.episode.id));
 
     return Scaffold(
       backgroundColor: bgDeep,
@@ -25,8 +43,8 @@ class EpisodeDetailScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: episode.thumbnailUrl != null
-                  ? Image.network(episode.thumbnailUrl!, fit: BoxFit.cover)
+              child: widget.episode.thumbnailUrl != null
+                  ? Image.network(widget.episode.thumbnailUrl!, fit: BoxFit.cover)
                   : Container(
                       color: card,
                       child: const Icon(Icons.movie_outlined, color: textDim, size: 48),
@@ -38,12 +56,12 @@ class EpisodeDetailScreen extends ConsumerWidget {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 Text(
-                  'Episode ${episode.episodeNumber}',
+                  'Episode ${widget.episode.episodeNumber}',
                   style: GoogleFonts.sora(color: textDim, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  episode.title,
+                  widget.episode.title,
                   style: GoogleFonts.nunito(
                     color: textCol,
                     fontWeight: FontWeight.w900,
@@ -51,9 +69,9 @@ class EpisodeDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (episode.synopsis != null) ...[
+                if (widget.episode.synopsis != null) ...[
                   Text(
-                    episode.synopsis!,
+                    widget.episode.synopsis!,
                     style: GoogleFonts.sora(
                       color: textSec,
                       fontSize: 15,
@@ -67,7 +85,7 @@ class EpisodeDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: _ChoiceBar(episode: episode, choicesAsync: choicesAsync),
+      bottomNavigationBar: _ChoiceBar(episode: widget.episode, choicesAsync: choicesAsync),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/level_up_dialog.dart';
 import '../../profile/application/profile_provider.dart';
@@ -71,6 +72,12 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
       final isIdempotent = result['idempotent'] == true;
       if (!isIdempotent) {
         ref.invalidate(profileProvider);
+        ref.read(analyticsProvider).capture('lava_quest_claimed', properties: {
+          'quest_id': widget.questId,
+          'gems_earned': result['gems_earned'],
+          'coins_earned': result['coins_earned'],
+          'xp_gained': result['xp_gained'],
+        });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
             '🌋 Quest complete! +${result['gems_earned']} 💎  +${result['coins_earned']} 🪙',
@@ -81,6 +88,10 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
         // AC-5: show level-up dialog only on fresh claim (not idempotent retry)
         if (result['leveled_up'] == true && result['new_fan_level'] != null) {
           final newLevel = result['new_fan_level'] as int;
+          ref.read(analyticsProvider).capture('level_up', properties: {
+            'new_fan_level': newLevel,
+            'source': 'lava_quest',
+          });
           final thresholds =
               ref.read(fanLevelThresholdsProvider).valueOrNull ?? [];
           final matches = thresholds.where((t) => t.level == newLevel);

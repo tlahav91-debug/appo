@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../profile/application/profile_provider.dart';
@@ -30,6 +31,7 @@ class DramaPassScreen extends ConsumerWidget {
       if (!next.hasValue || next.value == null) return;
       final result = next.value!;
       if (result.status == PurchaseStatus.success) {
+        ref.read(analyticsProvider).capture('drama_pass_purchased');
         ref.invalidate(profileProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(

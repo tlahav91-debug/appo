@@ -1,18 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../application/affinity_provider.dart';
 import 'affinity_card.dart';
 
-class AffinityScreen extends ConsumerWidget {
+class AffinityScreen extends ConsumerStatefulWidget {
   final String seriesId;
 
   const AffinityScreen({super.key, required this.seriesId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final affinityAsync = ref.watch(characterAffinitiesProvider(seriesId));
+  ConsumerState<AffinityScreen> createState() => _AffinityScreenState();
+}
+
+class _AffinityScreenState extends ConsumerState<AffinityScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsProvider).capture('affinity_viewed', properties: {
+        'series_id': widget.seriesId,
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final affinityAsync = ref.watch(characterAffinitiesProvider(widget.seriesId));
 
     return Scaffold(
       backgroundColor: bgDeep,

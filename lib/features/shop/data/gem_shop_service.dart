@@ -47,7 +47,7 @@ class GemShopService {
         orElse: () => throw Exception('Package $productId not found in cache'),
       );
       await Purchases.purchasePackage(pkg);
-      return const PurchaseResult(status: PurchaseStatus.success);
+      return PurchaseResult(status: PurchaseStatus.success, productId: productId);
     } on PurchasesErrorCode catch (e) {
       if (e == PurchasesErrorCode.purchaseCancelledError) {
         return const PurchaseResult(status: PurchaseStatus.cancelled);

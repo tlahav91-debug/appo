@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/analytics/analytics_provider.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/collectibles/application/album_provider.dart';
 import '../../features/episodes/data/choice_service.dart';
@@ -66,8 +67,19 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
         ref.invalidate(ownedCollectibleIdsProvider);
       }
 
+      ref.read(analyticsProvider).capture('choice_made', properties: {
+        'episode_id': widget.episodeId,
+        'choice_id': choice.id,
+        'coins_earned': result.coinsEarned,
+        'xp_gained': result.xpGained,
+      });
+
       // Show level-up dialog before closing sheet — context still valid here
       if (result.leveledUp && result.newFanLevel != null) {
+        ref.read(analyticsProvider).capture('level_up', properties: {
+          'new_fan_level': result.newFanLevel,
+          'source': 'episode',
+        });
         final thresholds =
             ref.read(fanLevelThresholdsProvider).valueOrNull ?? [];
         final matches = thresholds.where((t) => t.level == result.newFanLevel);

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../data/club_repository.dart';
 import '../domain/club_member.dart';
 import '../domain/watch_club.dart';
@@ -29,6 +30,7 @@ class ClubActionNotifier extends AutoDisposeAsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       final id = await ref.read(clubRepositoryProvider).createClub(name, description);
+      ref.read(analyticsProvider).capture('club_created', properties: {'club_id': id});
       ref.invalidate(userClubProvider);
       state = const AsyncValue.data(null);
       return id;
@@ -42,6 +44,7 @@ class ClubActionNotifier extends AutoDisposeAsyncNotifier<void> {
     state = const AsyncValue.loading();
     try {
       await ref.read(clubRepositoryProvider).joinClub(clubId);
+      ref.read(analyticsProvider).capture('club_joined', properties: {'club_id': clubId});
       ref.invalidate(userClubProvider);
       ref.invalidate(clubSearchProvider);
       state = const AsyncValue.data(null);
