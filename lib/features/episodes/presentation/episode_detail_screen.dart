@@ -7,6 +7,7 @@ import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/choice_sheet.dart';
 import '../application/episodes_provider.dart';
 import '../domain/episode.dart';
+import 'reaction_row.dart';
 
 class EpisodeDetailScreen extends ConsumerStatefulWidget {
   final Episode episode;
@@ -78,6 +79,8 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
                       height: 1.6,
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  ReactionRow(episodeId: widget.episode.id),
                   const SizedBox(height: 100),
                 ],
               ]),
