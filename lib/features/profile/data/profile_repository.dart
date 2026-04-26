@@ -48,6 +48,17 @@ class ProfileRepository {
     return rows.map<FanLevelThreshold>(FanLevelThreshold.fromJson).toList();
   }
 
+  Future<void> updateProfile({
+    required String userId,
+    required String username,
+    String? avatarUrl,
+  }) async {
+    await _client.from('profiles').update({
+      'username': username,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+    }).eq('id', userId);
+  }
+
   Future<void> _writeCache(Profile profile) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_cacheKey, jsonEncode(profile.toJson()));

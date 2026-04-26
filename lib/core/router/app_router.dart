@@ -12,6 +12,7 @@ import '../../features/events/presentation/lava_quest_screen.dart';
 import '../../features/profile/presentation/events_screen.dart';
 import '../../features/profile/presentation/journey_screen.dart';
 import '../../features/profile/presentation/leaderboard_screen.dart';
+import '../../features/profile/presentation/profile_edit_screen.dart';
 import '../../features/pass/presentation/drama_pass_screen.dart';
 import '../../features/race/presentation/race_screen.dart';
 import '../../features/shop/presentation/gem_shop_screen.dart';
@@ -104,6 +105,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/leaderboard',
         builder: (_, __) => const LeaderboardScreen(),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (_, __) => const ProfileEditScreen(),
       ),
     ],
   );

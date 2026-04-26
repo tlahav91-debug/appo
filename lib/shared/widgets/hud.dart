@@ -185,6 +185,20 @@ class _HudContent extends ConsumerWidget {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.edit_outlined, color: cyan),
+              title: Text(
+                'Edit Profile',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/profile/edit');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout, color: pink),
               title: Text(
                 'Sign out',
