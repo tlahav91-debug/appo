@@ -9,6 +9,8 @@ import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/stars.dart';
 import '../../club/application/club_provider.dart';
+import '../../club/domain/watch_club.dart';
+import '../../events/application/lava_quest_provider.dart';
 import '../../mylist/application/watch_progress_provider.dart';
 import '../../mylist/domain/watch_progress.dart';
 import '../application/home_provider.dart';
