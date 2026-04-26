@@ -4,10 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/presentation/home_screen.dart';
-import '../../features/profile/presentation/journey_screen.dart';
-import '../../features/profile/presentation/events_screen.dart';
-import '../../features/profile/presentation/leaderboard_screen.dart';
 import '../../features/profile/presentation/rewards_screen.dart';
+import '../../features/discover/presentation/discover_screen.dart';
+import '../../features/mylist/presentation/my_list_screen.dart';
+import '../../features/meta/presentation/meta_placeholder_screen.dart';
 import '../../features/shop/application/starter_pack_provider.dart';
 import '../../shared/widgets/starter_pack_sheet.dart';
 
@@ -24,18 +24,18 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   static const _screens = [
     HomeScreen(),
-    JourneyScreen(),
-    EventsScreen(),
-    LeaderboardScreen(),
+    DiscoverScreen(),
+    MyListScreen(),
     RewardsScreen(),
+    MetaPlaceholderScreen(),
   ];
 
   static const _tabs = [
     _TabItem(icon: '🏠', label: 'Home'),
-    _TabItem(icon: '🗺️', label: 'Journey'),
-    _TabItem(icon: '⚡', label: 'Events'),
-    _TabItem(icon: '🏆', label: 'Rank'),
+    _TabItem(icon: '🔍', label: 'Discover'),
+    _TabItem(icon: '📋', label: 'My List'),
     _TabItem(icon: '🎁', label: 'Rewards'),
+    _TabItem(icon: '🌟', label: 'Meta'),
   ];
 
   @override
