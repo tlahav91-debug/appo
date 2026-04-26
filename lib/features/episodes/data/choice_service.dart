@@ -14,6 +14,9 @@ class RecordChoiceResult {
   final String? collectibleId;
   final bool collectibleGranted;
   final bool idempotent;
+  final int xpGained;
+  final bool leveledUp;
+  final int? newFanLevel;
   final String? errorCode;
   final String? error;
 
@@ -25,6 +28,9 @@ class RecordChoiceResult {
     this.collectibleId,
     this.collectibleGranted = false,
     this.idempotent = false,
+    this.xpGained = 0,
+    this.leveledUp = false,
+    this.newFanLevel,
     this.errorCode,
     this.error,
   });
@@ -37,6 +43,9 @@ class RecordChoiceResult {
         collectibleId: d['collectible_id'] as String?,
         collectibleGranted: d['collectible_granted'] == true,
         idempotent: d['idempotent'] == true,
+        xpGained: (d['xp_gained'] as num?)?.toInt() ?? 0,
+        leveledUp: d['leveled_up'] == true,
+        newFanLevel: (d['new_fan_level'] as num?)?.toInt(),
       );
 
   factory RecordChoiceResult.err(String message, {String? code}) =>

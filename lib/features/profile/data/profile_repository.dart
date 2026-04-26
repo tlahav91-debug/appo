@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../domain/fan_level.dart';
 import '../domain/profile.dart';
 
 const _cacheKey = 'drama_profile';
@@ -37,6 +38,14 @@ class ProfileRepository {
   Future<void> clearCache() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_cacheKey);
+  }
+
+  Future<List<FanLevelThreshold>> fetchFanLevelThresholds() async {
+    final rows = await _client
+        .from('fan_level_thresholds')
+        .select()
+        .order('level');
+    return rows.map<FanLevelThreshold>(FanLevelThreshold.fromJson).toList();
   }
 
   Future<void> _writeCache(Profile profile) async {

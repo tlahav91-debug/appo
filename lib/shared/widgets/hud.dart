@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/profile/application/profile_provider.dart';
+import '../../features/profile/domain/fan_level.dart';
 import '../../features/profile/domain/profile.dart';
 import 'currency_display.dart';
 
@@ -18,23 +19,25 @@ class HUD extends ConsumerWidget implements PreferredSizeWidget {
     final profileAsync = ref.watch(profileProvider);
 
     return profileAsync.when(
-      data: (p) => _HudContent(profile: p, ref: ref),
+      data: (p) => _HudContent(profile: p),
       loading: () => profileAsync.hasValue
-          ? _HudContent(profile: profileAsync.value!, ref: ref)
+          ? _HudContent(profile: profileAsync.value!)
           : const _HudSkeleton(),
       error: (_, __) => const _HudSkeleton(),
     );
   }
 }
 
-class _HudContent extends StatelessWidget {
+class _HudContent extends ConsumerWidget {
   final Profile profile;
-  final WidgetRef ref;
 
-  const _HudContent({required this.profile, required this.ref});
+  const _HudContent({required this.profile, super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final thresholds = ref.watch(fanLevelThresholdsProvider).valueOrNull ?? [];
+    final fanLevel = FanLevel.fromProfile(profile.xp, profile.fanLevel, thresholds);
+
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -86,7 +89,7 @@ class _HudContent extends StatelessWidget {
             ),
           ],
           const SizedBox(width: 6),
-          // XP bar
+          // XP bar — fraction computed from real thresholds
           Container(
             width: 80,
             height: 6,
@@ -96,7 +99,7 @@ class _HudContent extends StatelessWidget {
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: (profile.xp / 100).clamp(0.0, 1.0),
+              widthFactor: fanLevel.progressFraction,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: purpleGrad,
@@ -114,7 +117,7 @@ class _HudContent extends StatelessWidget {
           const SizedBox(width: 12),
           // Settings
           GestureDetector(
-            onTap: () => _showSettings(context),
+            onTap: () => _showSettings(context, ref),
             child: const Icon(Icons.settings_outlined, color: textSec, size: 22),
           ),
         ],
@@ -122,7 +125,7 @@ class _HudContent extends StatelessWidget {
     );
   }
 
-  void _showSettings(BuildContext context) {
+  void _showSettings(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       backgroundColor: surface,

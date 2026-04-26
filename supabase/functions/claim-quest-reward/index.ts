@@ -16,7 +16,6 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
   const { quest_id } = body;
-  // BUG-007: validate UUID format before hitting DB
   if (!quest_id || !UUID_RE.test(quest_id)) {
     return json({ error: "quest_id must be a valid UUID" }, 400);
   }
@@ -29,7 +28,6 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
 
-  // BUG-001: single atomic RPC replaces non-atomic multi-step credit
   const { data, error } = await supabase.rpc("claim_quest_reward", {
     p_user_id: user.id,
     p_quest_id: quest_id,
@@ -37,16 +35,27 @@ Deno.serve(async (req: Request) => {
 
   if (error) return json({ error: "Internal error" }, 500);
 
-  const result = data as { error?: string; code?: number; idempotent?: boolean;
-                            gems_earned?: number; coins_earned?: number };
+  const result = data as {
+    error?: string;
+    code?: number;
+    idempotent?: boolean;
+    gems_earned?: number;
+    coins_earned?: number;
+    xp_gained?: number;
+    leveled_up?: boolean;
+    new_fan_level?: number;
+  };
 
   if (result.error) {
     return json({ error: result.error }, result.code ?? 400);
   }
 
   return json({
-    gems_earned: result.gems_earned,
-    coins_earned: result.coins_earned,
+    gems_earned:   result.gems_earned,
+    coins_earned:  result.coins_earned,
+    xp_gained:     result.xp_gained ?? 0,
+    leveled_up:    result.leveled_up ?? false,
+    new_fan_level: result.new_fan_level ?? null,
     ...(result.idempotent ? { idempotent: true } : {}),
   });
 });

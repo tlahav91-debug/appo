@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const DEFAULT_COIN_REWARD = 10;
+const XP_PER_EPISODE = 10;
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -28,7 +29,7 @@ Deno.serve(async (req: Request) => {
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
   const userId = user.id;
 
-  // Idempotency: if coin ledger row already exists, return early
+  // Idempotency: if coin ledger row already exists, return early without re-granting XP
   const { data: existingLedger } = await supabase
     .from("currency_ledger")
     .select("balance_after, delta")
@@ -42,6 +43,8 @@ Deno.serve(async (req: Request) => {
       new_balance: existingLedger.balance_after,
       collectible_id: null,
       collectible_granted: false,
+      xp_gained: 0,
+      leveled_up: false,
       idempotent: true,
     }, 200);
   }
@@ -93,7 +96,7 @@ Deno.serve(async (req: Request) => {
     if (!choiceInsertErr.message.includes("duplicate")) {
       return json({ error: "Failed to record choice" }, 500);
     }
-    // Already recorded — fetch existing row ID; skip race score increment
+    // Already recorded — fetch existing row ID; skip race score + XP increment
     choiceAlreadyRecorded = true;
     const { data: existing } = await supabase
       .from("user_episode_choices")
@@ -115,7 +118,6 @@ Deno.serve(async (req: Request) => {
     // L-4 fix: granted only on clean insert (null error)
     collectibleGranted = collectErr == null;
     if (collectErr && !collectErr.code?.includes("23505")) {
-      // Non-unique error — log but don't fail the whole request
       console.error("collectible insert error:", collectErr.message);
     }
   }
@@ -155,6 +157,8 @@ Deno.serve(async (req: Request) => {
       new_balance: raceRow?.balance_after ?? newBalance,
       collectible_id: choice.collectible_id ?? null,
       collectible_granted: false,
+      xp_gained: 0,
+      leveled_up: false,
       idempotent: true,
     }, 200);
   }
@@ -165,22 +169,48 @@ Deno.serve(async (req: Request) => {
     .update({ coins: newBalance })
     .eq("id", userId);
 
-  // Increment race score + quest progress + character affinity — first-time only, fire-and-forget
-  if (episode.series_id && !choiceAlreadyRecorded) {
-    await Promise.all([
-      supabase.rpc("increment_race_score", {
-        p_user_id: userId,
-        p_series_id: episode.series_id,
-      }).catch((e) => console.error("increment_race_score failed:", e)),
-      supabase.rpc("increment_quest_progress", {
-        p_user_id: userId,
-        p_series_id: episode.series_id,
-      }).catch((e) => console.error("increment_quest_progress failed:", e)),
+  // Increment race score, quest progress, affinity, and XP — first-time only, fire-and-forget
+  let xpGained = 0;
+  let leveledUp = false;
+  let newFanLevel: number | null = null;
+
+  if (!choiceAlreadyRecorded) {
+    const results = await Promise.allSettled([
+      episode.series_id
+        ? supabase.rpc("increment_race_score", {
+            p_user_id: userId,
+            p_series_id: episode.series_id,
+          }).catch((e) => console.error("increment_race_score failed:", e))
+        : Promise.resolve(),
+      episode.series_id
+        ? supabase.rpc("increment_quest_progress", {
+            p_user_id: userId,
+            p_series_id: episode.series_id,
+          }).catch((e) => console.error("increment_quest_progress failed:", e))
+        : Promise.resolve(),
       supabase.rpc("apply_choice_affinity", {
         p_user_id: userId,
         p_choice_id: choice_id,
       }).catch((e) => console.error("apply_choice_affinity failed:", e)),
+      supabase.rpc("grant_xp", {
+        p_user_id: userId,
+        p_amount: XP_PER_EPISODE,
+        p_source: "episode_watched",
+      }),
     ]);
+
+    // Capture XP result (last in the allSettled array)
+    const xpSettled = results[3];
+    if (xpSettled.status === "fulfilled") {
+      const xpData = (xpSettled.value as { data?: { leveled_up?: boolean; new_fan_level?: number } } | undefined)?.data;
+      if (xpData) {
+        xpGained = XP_PER_EPISODE;
+        leveledUp = xpData.leveled_up ?? false;
+        newFanLevel = xpData.new_fan_level ?? null;
+      }
+    } else {
+      console.error("grant_xp failed:", xpSettled.reason);
+    }
   }
 
   return json({
@@ -189,6 +219,9 @@ Deno.serve(async (req: Request) => {
     new_balance: newBalance,
     collectible_id: choice.collectible_id ?? null,
     collectible_granted: collectibleGranted,
+    xp_gained: xpGained,
+    leveled_up: leveledUp,
+    ...(newFanLevel !== null ? { new_fan_level: newFanLevel } : {}),
   }, 200);
 });
 

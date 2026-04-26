@@ -3,10 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/profile_repository.dart';
+import '../domain/fan_level.dart';
 import '../domain/profile.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(Supabase.instance.client);
+});
+
+final fanLevelThresholdsProvider = FutureProvider<List<FanLevelThreshold>>((ref) {
+  return ref.read(profileRepositoryProvider).fetchFanLevelThresholds();
 });
 
 final profileProvider =

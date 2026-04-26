@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../shared/widgets/level_up_dialog.dart';
 import '../../profile/application/profile_provider.dart';
 import '../application/lava_quest_provider.dart';
 import '../domain/lava_quest.dart';
@@ -77,6 +78,18 @@ class _LavaQuestScreenState extends ConsumerState<LavaQuestScreen>
           ),
           backgroundColor: lavaDim,
         ));
+        // AC-5: show level-up dialog only on fresh claim (not idempotent retry)
+        if (result['leveled_up'] == true && result['new_fan_level'] != null) {
+          final newLevel = result['new_fan_level'] as int;
+          final thresholds =
+              ref.read(fanLevelThresholdsProvider).valueOrNull ?? [];
+          final matches = thresholds.where((t) => t.level == newLevel);
+          final label =
+              matches.isNotEmpty ? matches.first.label : 'Level $newLevel';
+          if (mounted) {
+            await LevelUpDialog.show(context, newLevel: newLevel, levelLabel: label);
+          }
+        }
       }
     } catch (e) {
       if (!mounted) return;

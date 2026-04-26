@@ -8,6 +8,7 @@ import '../../features/episodes/domain/episode_choice.dart';
 import '../../features/profile/application/profile_provider.dart';
 import 'coin_toast.dart';
 import 'collectible_toast.dart';
+import 'level_up_dialog.dart';
 
 class ChoiceSheet extends ConsumerStatefulWidget {
   final String episodeId;
@@ -64,6 +65,23 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
       if (result.collectibleGranted) {
         ref.invalidate(ownedCollectibleIdsProvider);
       }
+
+      // Show level-up dialog before closing sheet — context still valid here
+      if (result.leveledUp && result.newFanLevel != null) {
+        final thresholds =
+            ref.read(fanLevelThresholdsProvider).valueOrNull ?? [];
+        final matches = thresholds.where((t) => t.level == result.newFanLevel);
+        final label = matches.isNotEmpty
+            ? matches.first.label
+            : 'Level ${result.newFanLevel}';
+        await LevelUpDialog.show(
+          context,
+          newLevel: result.newFanLevel!,
+          levelLabel: label,
+        );
+        if (!mounted) return;
+      }
+
       Navigator.pop(context);
       CoinToast.show(context, result.coinsEarned);
       if (result.collectibleGranted && choice.collectibleName != null) {

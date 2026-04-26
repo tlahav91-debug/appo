@@ -117,9 +117,12 @@ class LavaQuestRepository {
     }
     final data = res.data as Map<String, dynamic>;
     return {
-      'gems_earned': (data['gems_earned'] as num).toInt(),
-      'coins_earned': (data['coins_earned'] as num).toInt(),
-      'idempotent': data['idempotent'] == true,
+      'gems_earned':   (data['gems_earned'] as num).toInt(),
+      'coins_earned':  (data['coins_earned'] as num).toInt(),
+      'xp_gained':     (data['xp_gained'] as num?)?.toInt() ?? 0,
+      'leveled_up':    data['leveled_up'] == true,
+      'new_fan_level': (data['new_fan_level'] as num?)?.toInt(),
+      'idempotent':    data['idempotent'] == true,
     };
   }
 }
