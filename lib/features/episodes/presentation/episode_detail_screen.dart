@@ -65,6 +65,8 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final choicesAsync = ref.watch(episodeChoicesProvider(widget.episode.id));
+    final unlockedAsync = ref.watch(episodeUnlockedProvider(widget.episode.id));
+    final isUnlocked = unlockedAsync.valueOrNull ?? false;
 
     return Scaffold(
       backgroundColor: bgDeep,
@@ -127,6 +129,7 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
           : _ChoiceBar(
               episode: widget.episode,
               choicesAsync: choicesAsync,
+              isUnlocked: isUnlocked,
               onDone: _onDone,
             ),
     );
@@ -141,11 +144,13 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
 class _ChoiceBar extends StatelessWidget {
   final Episode episode;
   final AsyncValue choicesAsync;
+  final bool isUnlocked;
   final VoidCallback onDone;
 
   const _ChoiceBar({
     required this.episode,
     required this.choicesAsync,
+    required this.isUnlocked,
     required this.onDone,
   });
 
@@ -156,6 +161,22 @@ class _ChoiceBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: choicesAsync.when(
         data: (choices) {
+          // RLS denied access: episode is not free and not unlocked
+          if (choices.isEmpty && !episode.isFree && !isUnlocked) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock, color: textDim, size: 28),
+                const SizedBox(height: 8),
+                Text(
+                  'Unlock this episode to continue',
+                  style: GoogleFonts.sora(color: textDim, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            );
+          }
+
           if (choices.isEmpty) {
             // No choices — show "Continue →" that marks episode done
             return GestureDetector(
