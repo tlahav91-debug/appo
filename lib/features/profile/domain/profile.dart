@@ -53,6 +53,8 @@ class Profile {
             ? DateTime.parse(json['starter_pack_purchased_at'] as String).toUtc()
             : null,
         referralCode: json['referral_code'] as String?,
+        genrePreferences: List<String>.from(
+            json['genre_preferences'] as List? ?? []),
       );
 
   Map<String, dynamic> toJson() => {
@@ -69,6 +71,7 @@ class Profile {
         'last_pass_bonus_at': lastPassBonusAt?.toIso8601String(),
         'starter_pack_purchased_at': starterPackPurchasedAt?.toIso8601String(),
         'referral_code': referralCode,
+        'genre_preferences': genrePreferences,
       };
 
   Profile copyWith({
