@@ -77,10 +77,14 @@ async function sendFcmMessage(
   token: string,
   title: string,
   body: string,
-  data: Record<string, string>,
+  data: Record<string, unknown>,
   accessToken: string,
   projectId: string,
-): Promise<{ success: boolean; stale: boolean }> {
+): Promise<{ success: boolean; stale: boolean; fcmError?: string }> {
+  // FCM HTTP v1 requires all data values to be strings
+  const safeData = Object.fromEntries(
+    Object.entries(data).map(([k, v]) => [k, String(v)]),
+  );
   const res = await fetch(
     `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
     {
@@ -90,7 +94,7 @@ async function sendFcmMessage(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        message: { token, notification: { title, body }, data },
+        message: { token, notification: { title, body }, data: safeData },
       }),
     },
   );
@@ -99,7 +103,7 @@ async function sendFcmMessage(
   const stale = err?.error?.details?.some(
     (d: { errorCode?: string }) => d.errorCode === "UNREGISTERED",
   ) ?? false;
-  return { success: false, stale };
+  return { success: false, stale, fcmError: err?.error?.message };
 }
 
 Deno.serve(async (req: Request) => {
@@ -137,6 +141,7 @@ Deno.serve(async (req: Request) => {
   if (!tokens?.length) return json({ sent: 0 });
 
   const staleIds: string[] = [];
+  const fcmErrors: string[] = [];
   let sent = 0;
 
   await Promise.all(
@@ -146,6 +151,8 @@ Deno.serve(async (req: Request) => {
         sent++;
       } else if (result.stale) {
         staleIds.push(row.id);
+      } else if (result.fcmError) {
+        fcmErrors.push(result.fcmError);
       }
     }),
   );
@@ -155,5 +162,5 @@ Deno.serve(async (req: Request) => {
     await supabase.from("push_tokens").delete().in("id", staleIds);
   }
 
-  return json({ sent });
+  return json({ sent, ...(fcmErrors.length ? { errors: fcmErrors } : {}) });
 });
