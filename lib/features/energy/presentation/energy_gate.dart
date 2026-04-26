@@ -15,11 +15,17 @@ class EnergyGate extends ConsumerStatefulWidget {
   const EnergyGate({super.key, required this.currentEnergy});
 
   static Future<void> show(BuildContext context, {required int currentEnergy}) {
-    return showModalBottomSheet(
+    return showGeneralDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EnergyGate(currentEnergy: currentEnergy),
+      barrierDismissible: true,
+      barrierLabel: 'EnergyGate',
+      barrierColor: Colors.black87,
+      transitionDuration: const Duration(milliseconds: 350),
+      transitionBuilder: (ctx, anim, _, child) => ScaleTransition(
+        scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+      pageBuilder: (ctx, _, __) => EnergyGate(currentEnergy: currentEnergy),
     );
   }
 
@@ -98,86 +104,157 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
     final energy = ref.watch(energyStateProvider);
     final adReady = ref.watch(adServiceProvider).isReady;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: borderHi, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+            padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [bgDeep, surface],
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Close button
+                Align(
+                  alignment: Alignment.topRight,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.close, color: textDim, size: 24),
+                  ),
+                ),
+                const SizedBox(height: 8),
 
-          const Text('⚡', style: TextStyle(fontSize: 36)),
-          const SizedBox(height: 8),
-          Text('Not Enough Energy',
-              style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w900, fontSize: 22)),
-          const SizedBox(height: 6),
-          Text('${energy.current} / ${EnergyState.max} ⚡',
-              style: GoogleFonts.sora(color: textSec, fontSize: 14)),
-          const SizedBox(height: 4),
-          const EnergyTimer(),
-          const SizedBox(height: 24),
+                // Dramatic header
+                const Text('⚡', style: TextStyle(fontSize: 56)),
+                const SizedBox(height: 12),
+                Text(
+                  'Out of Energy',
+                  style: GoogleFonts.nunito(
+                    color: gold,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'You need more ⚡ to keep watching',
+                  style: GoogleFonts.sora(color: textSec, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
 
-          // Option 1 — Rewarded ad
-          GBtn(
-            gradient: adReady ? greenGrad : darkGrad,
-            width: double.infinity,
-            onPressed: (_adLoading || !adReady) ? null : _claimAdReward,
-            child: _adLoading
-                ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: textCol))
-                : Text(
-                    adReady ? 'Watch an Ad · Get 2 ⚡ free' : 'Ad loading…',
-                    style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700, fontSize: 15)),
+                // Current energy row
+                Text(
+                  '${energy.current} / ${EnergyState.max} ⚡',
+                  style: GoogleFonts.nunito(color: textDim, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                const EnergyTimer(),
+                const Divider(color: border, height: 32),
+
+                // Option 1 — Watch Ad
+                GBtn(
+                  gradient: adReady ? greenGrad : darkGrad,
+                  width: double.infinity,
+                  onPressed: (_adLoading || !adReady) ? null : _claimAdReward,
+                  child: _adLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: textCol),
+                        )
+                      : Text(
+                          adReady ? 'Watch an Ad · Get 2 ⚡ free' : 'Ad loading…',
+                          style: GoogleFonts.nunito(
+                            color: textCol,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 10),
+
+                // Option 2 — Gem Refill
+                GBtn(
+                  gradient: purpleGrad,
+                  width: double.infinity,
+                  onPressed: _gemLoading ? null : _claimGemRefill,
+                  child: _gemLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: textCol),
+                        )
+                      : Text(
+                          'Refill to Full · 50 💎',
+                          style: GoogleFonts.nunito(
+                            color: textCol,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 10),
+
+                // Option 3 — Get Gems
+                GBtn(
+                  gradient: goldGrad,
+                  width: double.infinity,
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push('/shop/gems');
+                  },
+                  child: Text(
+                    'Get Gems',
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Option 4 — Wait
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Wait for free energy',
+                    style: GoogleFonts.sora(color: textDim, fontSize: 14),
+                  ),
+                ),
+
+                // Feedback
+                if (_feedback != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _feedback!,
+                    style: GoogleFonts.sora(color: pink, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+
+                // Drama Pass promo
+                const SizedBox(height: 8),
+                Text(
+                  'Drama Pass members get +5 energy daily',
+                  style: GoogleFonts.sora(color: textDim, fontSize: 11),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-
-          // Option 2 — Gem refill
-          GBtn(
-            gradient: purpleGrad,
-            width: double.infinity,
-            onPressed: _gemLoading ? null : _claimGemRefill,
-            child: _gemLoading
-                ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: textCol))
-                : Text('Refill to Full · 50 💎',
-                    style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700, fontSize: 15)),
-          ),
-          const SizedBox(height: 10),
-
-          // Option 3 — Buy gems
-          GBtn(
-            gradient: goldGrad,
-            width: double.infinity,
-            onPressed: () {
-              Navigator.pop(context);
-              context.push('/shop/gems');
-            },
-            child: Text('Get Gems',
-                style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700, fontSize: 15)),
-          ),
-          const SizedBox(height: 10),
-
-          // Option 4 — Wait
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Wait for free energy',
-                style: GoogleFonts.sora(color: textDim, fontSize: 14)),
-          ),
-
-          if (_feedback != null) ...[
-            const SizedBox(height: 8),
-            Text(_feedback!, style: GoogleFonts.sora(color: pink, fontSize: 12), textAlign: TextAlign.center),
-          ],
-
-          const SizedBox(height: 8),
-          Text('Drama Pass members get +5 energy daily',
-              style: GoogleFonts.sora(color: textDim, fontSize: 11)),
-        ],
+        ),
       ),
     );
   }
