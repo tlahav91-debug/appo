@@ -15,6 +15,7 @@ class NotificationService {
   final _local = FlutterLocalNotificationsPlugin();
   StreamSubscription<String>? _tokenRefreshSub;
   bool _initialized = false;
+  bool _softAskInProgress = false;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -62,25 +63,29 @@ class NotificationService {
 
   // Called each time an episode is viewed. Shows soft-ask on 3rd view.
   Future<void> onEpisodeViewed(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadyShown = prefs.getBool(_promptShownKey) ?? false;
-    if (alreadyShown) return;
+    if (_softAskInProgress) return;
+    _softAskInProgress = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final alreadyShown = prefs.getBool(_promptShownKey) ?? false;
+      if (alreadyShown) return;
 
-    // Check if already authorized (e.g. granted via system settings)
-    if (Platform.isIOS) {
+      // Check if already authorized on any platform
       final settings = await FirebaseMessaging.instance.getNotificationSettings();
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         await prefs.setBool(_promptShownKey, true);
         await registerCurrentToken();
         return;
       }
-    }
 
-    final count = (prefs.getInt(_episodeCountKey) ?? 0) + 1;
-    await prefs.setInt(_episodeCountKey, count);
+      final count = (prefs.getInt(_episodeCountKey) ?? 0) + 1;
+      await prefs.setInt(_episodeCountKey, count);
 
-    if (count >= 3 && context.mounted) {
-      await _showSoftAsk(context, prefs);
+      if (count >= 3 && context.mounted) {
+        await _showSoftAsk(context, prefs);
+      }
+    } finally {
+      _softAskInProgress = false;
     }
   }
 

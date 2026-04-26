@@ -25,6 +25,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     final profile = ref.read(profileProvider).valueOrNull;
     _usernameCtrl = TextEditingController(text: profile?.username ?? '');
     _avatarCtrl = TextEditingController(text: profile?.avatarUrl ?? '');
+    _avatarCtrl.addListener(() => setState(() {}));
   }
 
   @override

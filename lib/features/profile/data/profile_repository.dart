@@ -55,7 +55,7 @@ class ProfileRepository {
   }) async {
     await _client.from('profiles').update({
       'username': username,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
+      'avatar_url': avatarUrl,
     }).eq('id', userId);
   }
 

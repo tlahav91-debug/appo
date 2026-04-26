@@ -9,6 +9,7 @@ import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/choice_sheet.dart';
 import '../application/episodes_provider.dart';
+import '../application/episode_progress_provider.dart';
 import '../domain/episode.dart';
 import 'reaction_row.dart';
 import '../application/series_rating_provider.dart';
@@ -43,6 +44,7 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
   }
 
   void _onDone() {
+    ref.invalidate(seriesProgressProvider(widget.episode.seriesId));
     if (mounted) setState(() => _done = true);
   }
 
@@ -542,7 +544,7 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    context.go('/');
+                    context.go('/home');
                   },
                   child: Text('Back to Home', style: GoogleFonts.sora(color: textDim, fontSize: 14)),
                 ),

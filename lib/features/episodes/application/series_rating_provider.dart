@@ -28,10 +28,10 @@ final seriesRatingProvider = FutureProvider.family<SeriesRatingState, String>(
     final total = rows.fold<int>(0, (sum, r) => sum + (r['rating'] as num).toInt());
     final avg = total / rows.length;
     final myRating = userId != null
-        ? rows.cast<Map<String, dynamic>?>().firstWhere(
+        ? (rows.cast<Map<String, dynamic>?>().firstWhere(
             (r) => r!['user_id'] == userId,
             orElse: () => null,
-          )?['rating'] as int?
+          )?['rating'] as num?)?.toInt()
         : null;
 
     return SeriesRatingState(
