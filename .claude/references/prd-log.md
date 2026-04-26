@@ -13,3 +13,6 @@
 | PRD-019 | Continue Watching / My List | ✅ Closed | 19296be | QA fixes: M-1 toggle-saved-drama unchecked insert/delete errors; M-2 missing FK constraints on series_id/episode_id |
 | PRD-020 | Discover Screen | ✅ Closed | 19296be | QA fixes: M-1 VIP badge text bgDeep not Colors.white; M-2 onRefresh catchError; L-1 AlwaysScrollableScrollPhysics |
 | PRD-021 | Home Screen v5 Redesign | ✅ Closed | 19296be | QA fixes: H-1 timer % _featuredCount not hardcoded 5; M-1 invalidate activeQuestsProvider on refresh; M-2 token colours in QuickLinkCards |
+| PRD-022 | My List Series Data Join | 🔄 QA | 79587fa | Supabase nested joins for watch_progress + saved_dramas; real titles + cover art in My List |
+| PRD-023 | Meta World Tab | 🔄 QA | 69878e8 | meta_unlocks + user_meta_profile tables; unlock-meta-item + equip-meta-item Edge Fns; MetaWorldScreen |
+| PRD-024 | Inbox with Claimable Rewards | 🔄 QA | 903716f | inbox_items table; claim-inbox-reward + send-inbox-message Edge Fns; InboxScreen modal; HUD badge |
