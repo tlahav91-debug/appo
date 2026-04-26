@@ -21,6 +21,7 @@ import '../../features/shop/presentation/gem_store_screen.dart';
 import '../../features/episodes/domain/episode.dart';
 import '../../features/episodes/presentation/series_screen.dart';
 import '../../features/episodes/presentation/episode_detail_screen.dart';
+import '../../features/social/presentation/social_feed_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -120,6 +121,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/referral',
         builder: (context, state) => const ReferralScreen(),
       ),
+      GoRoute(path: '/social', builder: (_, __) => const SocialFeedScreen()),
     ],
   );
 });

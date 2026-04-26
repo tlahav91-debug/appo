@@ -13,6 +13,7 @@ import '../application/episode_progress_provider.dart';
 import '../domain/episode.dart';
 import 'reaction_row.dart';
 import '../application/series_rating_provider.dart';
+import '../../social/application/social_provider.dart';
 
 class EpisodeDetailScreen extends ConsumerStatefulWidget {
   final Episode episode;
@@ -46,6 +47,10 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
   void _onDone() {
     ref.invalidate(seriesProgressProvider(widget.episode.seriesId));
     if (mounted) setState(() => _done = true);
+    ref.read(socialRepositoryProvider).createActivityEvent(
+      widget.episode.id,
+      widget.episode.seriesId,
+    );
   }
 
   void _showCompletionModal() {

@@ -11,6 +11,7 @@ import '../../features/discover/presentation/discover_screen.dart';
 import '../../features/mylist/presentation/my_list_screen.dart';
 import '../../features/meta/presentation/meta_world_screen.dart';
 import '../../features/shop/application/starter_pack_provider.dart';
+import '../../features/social/presentation/social_feed_screen.dart';
 import '../../shared/widgets/starter_pack_sheet.dart';
 
 class AppShell extends ConsumerStatefulWidget {
@@ -31,6 +32,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     MyListScreen(),
     RewardsScreen(),
     MetaWorldScreen(),
+    SocialFeedScreen(),
   ];
 
   static const _tabs = [
@@ -39,6 +41,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     _TabItem(icon: '📋', label: 'My List'),
     _TabItem(icon: '🎁', label: 'Rewards'),
     _TabItem(icon: '🌟', label: 'Meta'),
+    _TabItem(icon: '👥', label: 'Social'),
   ];
 
   @override
