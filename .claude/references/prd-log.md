@@ -20,3 +20,7 @@
 | PRD-026 | Series Detail Screen v5 | ✅ Closed | e3e6761 | QA fixes: H-1 WidgetRef stored as _RaceBanner field removed; M-1 loading placeholder shows spinner |
 | PRD-027 | Daily Streak + Rewards Screen | ✅ Closed | e3e6761 | QA fixes: C-1 atomic increment_currency RPC replaces lost-update pattern; C-2 INSERT RLS gap documented + RPC secured; H-1 date boundary uses tomorrow not 23:59:59; H-2 isToday flag consolidated; M-1 dead streakStart variable removed |
 | PRD-028 | Leaderboard — Real Rankings | ✅ Closed | e3e6761 | QA fixes: C-1 races ordered by starts_at (no created_at column); H-1 profiles join uses automatic FK resolution; M-1 Column wrapped in Positioned.fill |
+| PRD-029 | Journey Screen | ✅ Closed | b72c104 | QA fix: L-1 hardcoded Color(0xFF333333) in milestone emoji replaced with textDim |
+| PRD-030 | Episode End Auto-Advance | ✅ Closed | b72c104 | QA fixes: C-1 context.go('/discover') route not found → /home; H-1 _init() now awaits episodesProvider.future to avoid empty list on direct navigation |
+| PRD-031 | Series Completion Modal | ✅ Closed | b72c104 | Covered by PRD-030 QA fixes (same file) |
+| PRD-032 | Episode Reactions | ✅ Closed | b72c104 | QA fix: M-1 ReactionRow moved outside synopsis guard — always visible |
