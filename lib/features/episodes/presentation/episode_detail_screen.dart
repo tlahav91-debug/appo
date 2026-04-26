@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/analytics/analytics_provider.dart';
+import '../../../core/notifications/notification_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/choice_sheet.dart';
@@ -32,6 +33,11 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
         'series_id': widget.episode.seriesId,
         'episode_number': widget.episode.episodeNumber,
       });
+    });
+    // Trigger notification soft-ask check (fire-and-forget)
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await ref.read(notificationServiceProvider).onEpisodeViewed(context);
     });
   }
 
