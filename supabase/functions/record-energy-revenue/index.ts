@@ -23,37 +23,26 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Find the episode's creator via content_submissions
-  const { data: submission } = await supabase
-    .from("content_submissions")
+  // Direct lookup: episodes.creator_id (set at approval time)
+  const { data: episode } = await supabase
+    .from("episodes")
     .select("creator_id")
-    .eq("series_id", (
-      await supabase.from("episodes").select("series_id").eq("id", episode_id).maybeSingle()
-    ).data?.series_id)
-    .eq("status", "approved")
-    .limit(1)
+    .eq("id", episode_id)
     .maybeSingle();
 
-  // If no creator found (e.g. platform-owned content), skip silently
-  if (!submission?.creator_id) return json({ ok: true, credited: false });
+  if (!episode?.creator_id) return json({ ok: true, credited: false });
+  const creatorId = episode.creator_id;
 
   const revenueUsd = energy_spent * ENERGY_USD_RATE * CREATOR_SHARE;
   const today = new Date().toISOString().split("T")[0];
 
-  const { error } = await supabase.from("creator_earnings").upsert(
-    {
-      creator_id: submission.creator_id,
-      episode_id,
-      date: today,
-      energy_gate_revenue_usd: revenueUsd,
-    },
-    {
-      onConflict: "creator_id,episode_id,date",
-      ignoreDuplicates: false,
-    }
-  );
+  const { error } = await supabase.rpc("increment_energy_revenue", {
+    p_creator_id: creatorId,
+    p_episode_id: episode_id,
+    p_date: today,
+    p_amount: revenueUsd,
+  });
 
-  // Note: upsert increments require a DB function for atomic add; this inserts new row per day
   if (error) return json({ error: error.message }, 500);
   return json({ ok: true, credited: true, amount_usd: revenueUsd });
 });

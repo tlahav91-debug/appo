@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: payout } = await supabase
     .from("creator_payouts")
-    .select("*, creator_profiles(payout_email)")
+    .select("*")
     .eq("id", payout_id)
     .maybeSingle();
 
@@ -29,7 +29,9 @@ Deno.serve(async (req: Request) => {
   if (payout.status !== "pending") return json({ error: "Payout is not pending" }, 409);
 
   // Mark as processing
-  await supabase.from("creator_payouts").update({ status: "processing" }).eq("id", payout_id);
+  const { error: processingErr } = await supabase
+    .from("creator_payouts").update({ status: "processing" }).eq("id", payout_id);
+  if (processingErr) return json({ error: processingErr.message }, 500);
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")!;
   const amountCents = Math.round(Number(payout.amount_usd) * 100);
@@ -42,7 +44,9 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   if (!creatorProfile?.stripe_account_id) {
-    await supabase.from("creator_payouts").update({ status: "failed" }).eq("id", payout_id);
+    const { error: failErr } = await supabase
+      .from("creator_payouts").update({ status: "failed" }).eq("id", payout_id);
+    if (failErr) console.error("Failed to mark payout as failed:", failErr.message);
     return json({ error: "No Stripe account connected for this creator" }, 400);
   }
 
@@ -63,15 +67,21 @@ Deno.serve(async (req: Request) => {
 
   const stripeData = await stripeRes.json();
   if (!stripeRes.ok) {
-    await supabase.from("creator_payouts").update({ status: "failed" }).eq("id", payout_id);
+    const { error: failErr } = await supabase
+      .from("creator_payouts").update({ status: "failed" }).eq("id", payout_id);
+    if (failErr) console.error("Failed to mark payout as failed:", failErr.message);
     return json({ error: stripeData.error?.message ?? "Stripe transfer failed" }, 500);
   }
 
   // Mark paid
-  await supabase.from("creator_payouts").update({
+  const { error: paidErr } = await supabase.from("creator_payouts").update({
     status: "paid",
     stripe_transfer_id: stripeData.id,
   }).eq("id", payout_id);
+  if (paidErr) {
+    // Money moved but DB not updated — log critically
+    console.error(`CRITICAL: Stripe transfer ${stripeData.id} succeeded but DB update failed:`, paidErr.message);
+  }
 
   return json({ ok: true, transfer_id: stripeData.id });
 });

@@ -32,6 +32,7 @@ Deno.serve(async (req: Request) => {
 
   if (!earnings) return json({ error: "Failed to fetch earnings" }, 500);
 
+  // TODO(PRD-047): subscription_share_usd always 0 until subscription attribution is built
   // Aggregate per creator
   const totals = new Map<string, number>();
   for (const row of earnings) {
@@ -51,14 +52,15 @@ Deno.serve(async (req: Request) => {
 
   if (payouts.length === 0) return json({ ok: true, payouts_created: 0 });
 
-  const { error: insertErr } = await supabase.from("creator_payouts").insert(
+  const { error: insertErr } = await supabase.from("creator_payouts").upsert(
     payouts.map(p => ({
       creator_id: p.creator_id,
       period_start,
       period_end,
       amount_usd: p.amount.toFixed(2),
       status: "pending",
-    }))
+    })),
+    { onConflict: "creator_id,period_start,period_end", ignoreDuplicates: true }
   );
 
   if (insertErr) return json({ error: insertErr.message }, 500);

@@ -19,6 +19,15 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  const { data: existing } = await supabase
+    .from("content_submissions")
+    .select("id, status")
+    .eq("id", submission_id)
+    .maybeSingle();
+
+  if (!existing) return json({ error: "Submission not found" }, 404);
+  if (existing.status !== "submitted") return json({ error: "Submission is not in submitted status" }, 409);
+
   const { error } = await supabase
     .from("content_submissions")
     .update({

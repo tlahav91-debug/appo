@@ -33,19 +33,31 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   if (!sub) return json({ error: "Submission not found" }, 404);
-  if (sub.status !== "submitted") return json({ error: "Submission is not in submitted status" }, 409);
+
+  // Optimistic lock: atomically flip status to 'approved' only if still 'submitted'
+  const { data: locked, error: lockErr } = await supabase
+    .from("content_submissions")
+    .update({ status: "approved", reviewed_at: new Date().toISOString() })
+    .eq("id", submission_id)
+    .eq("status", "submitted")
+    .select("id")
+    .maybeSingle();
+
+  if (lockErr) return json({ error: lockErr.message }, 500);
+  if (!locked) return json({ error: "Submission already processed" }, 409);
+
+  // Now safe to create series/episode — lock is held
 
   // Resolve or create series
   let resolvedSeriesId = series_id;
   if (!resolvedSeriesId && new_series_title) {
+    // Series INSERT — remove creator_id and thumbnail_url:
     const { data: newSeries, error: seriesErr } = await supabase
       .from("series")
       .insert({
         title: new_series_title,
         description: sub.description ?? "",
         genre: sub.genre ?? "",
-        creator_id: sub.creator_id,
-        thumbnail_url: sub.thumbnail_url ?? "",
       })
       .select("id")
       .single();
@@ -56,12 +68,12 @@ Deno.serve(async (req: Request) => {
   if (!resolvedSeriesId) return json({ error: "series_id or new_series_title is required" }, 400);
 
   // Build video URL from Cloudflare Stream
-  const cfAccountId = Deno.env.get("CF_ACCOUNT_ID") ?? "";
+  const cfCustomerSubdomain = Deno.env.get("CF_CUSTOMER_SUBDOMAIN") ?? "";
   const videoUrl = sub.cf_stream_id
-    ? `https://customer-${cfAccountId}.cloudflarestream.com/${sub.cf_stream_id}/manifest/video.m3u8`
+    ? `https://customer-${cfCustomerSubdomain}.cloudflarestream.com/${sub.cf_stream_id}/manifest/video.m3u8`
     : "";
 
-  // Insert episode
+  // Episode INSERT — add creator_id:
   const { data: episode, error: epErr } = await supabase
     .from("episodes")
     .insert({
@@ -71,23 +83,12 @@ Deno.serve(async (req: Request) => {
       video_url: videoUrl,
       thumbnail_url: sub.thumbnail_url ?? "",
       is_free,
+      creator_id: sub.creator_id,  // new column
     })
     .select("id")
     .single();
 
   if (epErr) return json({ error: epErr.message }, 500);
-
-  // Update submission
-  const { error: updErr } = await supabase
-    .from("content_submissions")
-    .update({
-      status: "approved",
-      series_id: resolvedSeriesId,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", submission_id);
-
-  if (updErr) return json({ error: updErr.message }, 500);
 
   return json({ ok: true, episode_id: episode.id, series_id: resolvedSeriesId });
 });
