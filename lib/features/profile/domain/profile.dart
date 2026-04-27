@@ -57,6 +57,7 @@ class Profile {
         referralCode: json['referral_code'] as String?,
         genrePreferences: List<String>.from(
             json['genre_preferences'] as List? ?? []),
+        isCreator: json['is_creator'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -74,6 +75,7 @@ class Profile {
         'starter_pack_purchased_at': starterPackPurchasedAt?.toIso8601String(),
         'referral_code': referralCode,
         'genre_preferences': genrePreferences,
+        'is_creator': isCreator,
       };
 
   Profile copyWith({
@@ -90,6 +92,7 @@ class Profile {
     DateTime? starterPackPurchasedAt,
     String? referralCode,
     List<String>? genrePreferences,
+    bool? isCreator,
   }) =>
       Profile(
         id: id,
@@ -106,6 +109,7 @@ class Profile {
         starterPackPurchasedAt: starterPackPurchasedAt ?? this.starterPackPurchasedAt,
         referralCode: referralCode ?? this.referralCode,
         genrePreferences: genrePreferences ?? this.genrePreferences,
+        isCreator: isCreator ?? this.isCreator,
       );
 
   bool get passBonusClaimableToday {

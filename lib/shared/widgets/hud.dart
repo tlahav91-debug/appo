@@ -206,6 +206,36 @@ class _HudContent extends ConsumerWidget {
                 context.push('/profile/edit');
               },
             ),
+            if (profile.isCreator)
+              ListTile(
+                leading: const Icon(Icons.movie_creation_outlined, color: gold),
+                title: Text(
+                  'Creator Studio',
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/creator/status');
+                },
+              )
+            else
+              ListTile(
+                leading: const Icon(Icons.movie_creation_outlined, color: purple),
+                title: Text(
+                  'Become a Creator 🎬',
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/creator/apply');
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.logout, color: pink),
               title: Text(
