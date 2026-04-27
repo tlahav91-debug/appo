@@ -285,7 +285,7 @@ class _VipBar extends StatelessWidget {
           child: Text(
             'DRAMA PASS ACTIVE',
             style: GoogleFonts.nunito(
-              color: Colors.white,
+              color: textCol,
               fontSize: 10,
               fontWeight: FontWeight.w800,
               letterSpacing: 1,

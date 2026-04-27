@@ -32,7 +32,19 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   if (existing) {
-    return json({ error: "ALREADY_APPLIED", status: existing.status }, 409);
+    if (existing.status !== 'rejected') {
+      return json({ error: "ALREADY_APPLIED", status: existing.status }, 409);
+    }
+    // Rejected — allow re-application by updating the existing row
+    const { error: updateErr } = await supabase.from("creator_profiles").update({
+      display_name: display_name.trim(),
+      bio: bio.trim(),
+      why_create: why_create.trim(),
+      status: "pending",
+      rejection_reason: null,
+    }).eq("id", user.id);
+    if (updateErr) return json({ error: updateErr.message }, 500);
+    return json({ ok: true });
   }
 
   const { error: insertErr } = await supabase.from("creator_profiles").insert({

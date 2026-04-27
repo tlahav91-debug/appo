@@ -7,7 +7,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState<boolean>(false);
 
   async function login() {
     setLoading(true);
@@ -15,10 +15,10 @@ export default function Home() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) { setError(error.message); return; }
-    setSession(data.session?.access_token ?? null);
+    if (data.session) setLoggedIn(true);
   }
 
-  if (session) return <Dashboard token={session} />;
+  if (loggedIn) return <Dashboard />;
 
   return (
     <main style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -43,7 +43,7 @@ export default function Home() {
   );
 }
 
-function Dashboard({ token }: { token: string }) {
+function Dashboard() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('Romance');
@@ -66,13 +66,17 @@ function Dashboard({ token }: { token: string }) {
     if (!title || !file) { setStatus('Title and video file are required.'); return; }
     setStatus('Getting upload URL…');
 
+    const { data: { session } } = await supabase.auth.getSession();
+    const freshToken = session?.access_token;
+    if (!freshToken) { setStatus('Session expired. Please sign in again.'); return; }
+
     const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/get-upload-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${freshToken}`,
       },
-      body: JSON.stringify({ title, description, genre, episode_number: episodeNumber, thumbnail_url: thumbnailUrl }),
+      body: JSON.stringify({ title, description, genre, episode_number: episodeNumber, thumbnail_url: thumbnailUrl, file_size: file.size }),
     });
 
     const data = await res.json();
@@ -96,9 +100,12 @@ function Dashboard({ token }: { token: string }) {
     });
 
     setStatus('Submitting for review…');
+    const { data: { session: subSession } } = await supabase.auth.getSession();
+    const subToken = subSession?.access_token;
+    if (!subToken) { setStatus('Session expired. Please sign in again.'); return; }
     const subRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/submit-content`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${subToken}` },
       body: JSON.stringify({ submission_id }),
     });
 

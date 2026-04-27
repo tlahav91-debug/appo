@@ -42,11 +42,16 @@ class _CreatorApplyScreenState extends ConsumerState<CreatorApplyScreen> {
     );
     if (!mounted) return;
     if (err != null && err != 'ALREADY_APPLIED') {
+      if (err == 'Not logged in') {
+        context.go('/auth');
+        return;
+      }
       setState(() { _loading = false; _error = err; });
-    } else {
-      ref.invalidate(creatorProfileProvider);
-      context.go('/creator/status');
+      return;
     }
+    setState(() => _loading = false);
+    ref.invalidate(creatorProfileProvider);
+    context.go('/creator/status');
   }
 
   @override

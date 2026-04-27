@@ -24,18 +24,30 @@ Deno.serve(async (req: Request) => {
 
   const newStatus = approved ? "approved" : "rejected";
 
-  const { error: cpErr } = await supabase.from("creator_profiles").update({
-    status: newStatus,
-    rejection_reason: approved ? null : (rejection_reason ?? "Application not approved."),
-  }).eq("id", user_id);
+  const { data: updated, error: cpErr } = await supabase
+    .from("creator_profiles")
+    .update({
+      status: newStatus,
+      rejection_reason: approved ? null : (rejection_reason ?? "Application not approved."),
+    })
+    .eq("id", user_id)
+    .select("id")
+    .maybeSingle();
 
   if (cpErr) return json({ error: cpErr.message }, 500);
+  if (!updated) return json({ error: "Creator profile not found" }, 404);
 
   const { error: profErr } = await supabase.from("profiles")
     .update({ is_creator: approved })
     .eq("id", user_id);
 
-  if (profErr) return json({ error: profErr.message }, 500);
+  if (profErr) {
+    // Best-effort rollback
+    await supabase.from("creator_profiles")
+      .update({ status: "pending" })
+      .eq("id", user_id);
+    return json({ error: profErr.message }, 500);
+  }
 
   return json({ ok: true });
 });

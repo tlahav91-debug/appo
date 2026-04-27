@@ -7,11 +7,12 @@ Deno.serve(async (req: Request) => {
   if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
   const jwt = authHeader.slice(7);
 
-  let body: { title?: string; description?: string; genre?: string; episode_number?: number; thumbnail_url?: string };
+  let body: { title?: string; description?: string; genre?: string; episode_number?: number; thumbnail_url?: string; file_size?: number };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
-  const { title, description, genre, episode_number = 1, thumbnail_url } = body;
+  const { title, description, genre, episode_number = 1, thumbnail_url, file_size } = body;
   if (!title) return json({ error: "title is required" }, 400);
+  if (!file_size || file_size <= 0) return json({ error: "file_size is required" }, 400);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -42,7 +43,7 @@ Deno.serve(async (req: Request) => {
       headers: {
         "Authorization": `Bearer ${cfApiToken}`,
         "Tus-Resumable": "1.0.0",
-        "Upload-Length": "0",
+        "Upload-Length": String(file_size),
         "Upload-Metadata": `name ${btoa(title)}`,
       },
     }
