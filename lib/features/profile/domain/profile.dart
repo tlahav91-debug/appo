@@ -13,6 +13,7 @@ class Profile {
   final DateTime? starterPackPurchasedAt;
   final String? referralCode;
   final List<String> genrePreferences;
+  final bool isCreator;
 
   const Profile({
     required this.id,
@@ -29,6 +30,7 @@ class Profile {
     this.starterPackPurchasedAt,
     this.referralCode,
     this.genrePreferences = const [],
+    this.isCreator = false,
   });
 
   String get displayName => username ?? 'Player';
