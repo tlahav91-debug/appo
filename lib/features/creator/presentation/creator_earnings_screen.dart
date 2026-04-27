@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
+import '../../profile/application/profile_provider.dart';
 
 final _earningsSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -18,6 +19,7 @@ final _earningsSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) asyn
       .eq('creator_id', userId)
       .gte('date', monthStart);
 
+  // TODO(PRD-047): subscription_share_usd always 0 — subscription attribution deferred
   double monthTotal = 0;
   for (final row in (earnings as List)) {
     monthTotal += (row['energy_gate_revenue_usd'] as num).toDouble();
@@ -56,6 +58,17 @@ class CreatorEarningsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Guard: non-creators should not see this screen
+    final profile = ref.watch(profileProvider).valueOrNull;
+    if (profile != null && !profile.isCreator) {
+      return Scaffold(
+        backgroundColor: bgDeep,
+        body: Center(
+          child: Text('Creator access only.', style: GoogleFonts.sora(color: textDim)),
+        ),
+      );
+    }
+
     final summaryAsync = ref.watch(_earningsSummaryProvider);
 
     return Scaffold(

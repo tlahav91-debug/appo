@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET ?? '';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 
 type Submission = {
@@ -21,7 +20,25 @@ type CreatorApp = {
 export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [authed, setAuthed] = useState(false);
+  const [adminSecret, setAdminSecret] = useState('');
   const [tab, setTab] = useState<'content' | 'creators'>('content');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function login() {
+    setLoading(true);
+    setError('');
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    setLoading(false);
+    if (!res.ok) { setError('Invalid password'); return; }
+    // Store password in component state for Edge Function calls (not in bundle)
+    setAdminSecret(password);
+    setAuthed(true);
+  }
 
   if (!authed) {
     return (
@@ -31,10 +48,13 @@ export default function AdminPage() {
           <input
             type="password" placeholder="Admin secret" value={password}
             onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && setAuthed(password === ADMIN_SECRET)}
+            onKeyDown={e => e.key === 'Enter' && login()}
             style={inputStyle}
           />
-          <button onClick={() => setAuthed(password === ADMIN_SECRET)} style={btnStyle}>Enter</button>
+          {error && <p style={{ color: '#f87171', fontSize: 13, marginBottom: 8 }}>{error}</p>}
+          <button onClick={login} disabled={loading} style={btnStyle}>
+            {loading ? 'Checking…' : 'Enter'}
+          </button>
         </div>
       </main>
     );
@@ -53,12 +73,12 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
-      {tab === 'content' ? <ContentQueue /> : <CreatorApplications />}
+      {tab === 'content' ? <ContentQueue adminSecret={adminSecret} /> : <CreatorApplications adminSecret={adminSecret} />}
     </main>
   );
 }
 
-function ContentQueue() {
+function ContentQueue({ adminSecret }: { adminSecret: string }) {
   const [items, setItems] = useState<Submission[]>([]);
   const [selected, setSelected] = useState<Submission | null>(null);
   const [seriesId, setSeriesId] = useState('');
@@ -69,11 +89,12 @@ function ContentQueue() {
   const [status, setStatus] = useState('');
 
   async function load() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('content_submissions')
       .select('*, creator_profiles(display_name, why_create)')
       .eq('status', 'submitted')
       .order('submitted_at', { ascending: true });
+    if (error) { setStatus(`Failed to load queue: ${error.message}`); return; }
     setItems((data as Submission[]) ?? []);
   }
 
@@ -84,7 +105,7 @@ function ContentQueue() {
     setStatus('Approving…');
     const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-content`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
       body: JSON.stringify({
         submission_id: selected.id,
         is_free: isFree,
@@ -105,7 +126,7 @@ function ContentQueue() {
     setStatus('Rejecting…');
     const res = await fetch(`${SUPABASE_URL}/functions/v1/reject-content`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
       body: JSON.stringify({ submission_id: selected.id, reason: rejectReason }),
     });
     const d = await res.json();
@@ -115,7 +136,7 @@ function ContentQueue() {
     load();
   }
 
-  if (items.length === 0) return <p style={{ color: '#666' }}>No pending submissions.</p>;
+  if (items.length === 0) return <p style={{ color: '#666' }}>No pending submissions. {status}</p>;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1fr' : '1fr', gap: 20 }}>
@@ -164,16 +185,17 @@ function ContentQueue() {
   );
 }
 
-function CreatorApplications() {
+function CreatorApplications({ adminSecret }: { adminSecret: string }) {
   const [apps, setApps] = useState<CreatorApp[]>([]);
   const [status, setStatus] = useState('');
 
   async function load() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('creator_profiles')
       .select('*, profiles(username)')
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
+    if (error) { setStatus(`Failed to load queue: ${error.message}`); return; }
     setApps((data as CreatorApp[]) ?? []);
   }
 
@@ -183,7 +205,7 @@ function CreatorApplications() {
     setStatus('Processing…');
     const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-creator`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-secret': ADMIN_SECRET },
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
       body: JSON.stringify({ user_id: userId, approved, rejection_reason: reason }),
     });
     const d = await res.json();
