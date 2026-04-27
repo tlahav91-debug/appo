@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SocialRepository {
   final _client = Supabase.instance.client;
 
+  // RLS on activity_events filters to own events + followed users — no extra WHERE needed
   Future<List<Map<String, dynamic>>> fetchFeed() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return [];

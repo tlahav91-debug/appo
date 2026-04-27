@@ -20,6 +20,8 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // getUser() validates the JWT against Supabase Auth on the service-role client —
+  // this is the correct server-side pattern; auth.currentUser is always null on server clients
   const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
 

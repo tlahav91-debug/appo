@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../application/social_provider.dart';
 
@@ -12,7 +13,29 @@ class SocialFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
-  final Set<String> _likedIds = {};
+  Set<String> _likedIds = {}; // current UI state (optimistic)
+  Set<String> _serverLikedIds = {}; // synced from server payload
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
+  }
+
+  void _syncLikedIds(List<Map<String, dynamic>> items) {
+    final uid = _currentUserId;
+    if (uid == null) return;
+    final newLiked = <String>{};
+    for (final item in items) {
+      final likes = item['activity_likes'] as List? ?? [];
+      if (likes.any((l) => (l as Map)['user_id'] == uid)) {
+        newLiked.add(item['id'] as String);
+      }
+    }
+    _serverLikedIds = Set<String>.from(newLiked);
+    _likedIds = Set<String>.from(newLiked);
+  }
 
   String _timeAgo(String isoDate) {
     final diff = DateTime.now().difference(DateTime.parse(isoDate));
@@ -45,6 +68,12 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
           child: Text('Could not load feed', style: GoogleFonts.sora(color: textDim)),
         ),
         data: (items) {
+          // Sync liked IDs from server data on each new load
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() => _syncLikedIds(items));
+          });
+
           if (items.isEmpty) {
             return Center(
               child: Text(
@@ -66,12 +95,19 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
                 final profile = item['profiles'] as Map<String, dynamic>? ?? {};
                 final episode = item['episodes'] as Map<String, dynamic>? ?? {};
                 final series = item['series'] as Map<String, dynamic>?;
-                final likes = (item['activity_likes'] as List?)?.length ?? 0;
+                final serverLikeCount = (item['activity_likes'] as List?)?.length ?? 0;
                 final comments = (item['activity_comments'] as List?)?.length ?? 0;
                 final eventId = item['id'] as String;
                 final isLiked = _likedIds.contains(eventId);
+                final serverLiked = _serverLikedIds.contains(eventId);
                 final avatarUrl = profile['avatar_url'] as String?;
                 final username = profile['username'] as String? ?? 'Unknown';
+                final rawDate = item['created_at'] as String?;
+
+                // Optimistic like count: adjust from server count based on UI vs server state
+                final displayLikes = serverLikeCount +
+                    (isLiked && !serverLiked ? 1 : 0) -
+                    (!isLiked && serverLiked ? 1 : 0);
 
                 return Container(
                   padding: const EdgeInsets.all(14),
@@ -85,15 +121,23 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
                       CircleAvatar(
                         radius: 20,
                         backgroundColor: card,
-                        backgroundImage: avatarUrl != null
-                            ? NetworkImage(avatarUrl)
-                            : null,
-                        child: avatarUrl == null
-                            ? Text(
+                        child: avatarUrl != null
+                            ? ClipOval(
+                                child: Image.network(
+                                  avatarUrl,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Text(
+                                    username.isNotEmpty ? username[0].toUpperCase() : '?',
+                                    style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              )
+                            : Text(
                                 username.isNotEmpty ? username[0].toUpperCase() : '?',
                                 style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700),
-                              )
-                            : null,
+                              ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -146,6 +190,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
                                     });
                                     await ref.read(socialRepositoryProvider)
                                         .toggleLike(eventId, isLiked);
+                                    ref.invalidate(socialFeedProvider);
                                   },
                                   child: Row(
                                     children: [
@@ -156,7 +201,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '${likes + (isLiked ? 1 : 0)}',
+                                        '$displayLikes',
                                         style: GoogleFonts.sora(color: textDim, fontSize: 12),
                                       ),
                                     ],
@@ -171,7 +216,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  _timeAgo(item['created_at'] as String),
+                                  rawDate != null ? _timeAgo(rawDate) : '',
                                   style: GoogleFonts.sora(color: textDim, fontSize: 11),
                                 ),
                               ],

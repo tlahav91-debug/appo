@@ -11,6 +11,7 @@ final followStatusProvider = FutureProvider.family<bool, String>((ref, userId) a
   return ref.read(socialRepositoryProvider).isFollowing(userId);
 });
 
+// NOTE: positional arg pattern — valid in Riverpod 2.x manual providers; not code-gen compatible
 class FollowNotifier extends AutoDisposeAsyncNotifier<bool> {
   final String targetId;
   FollowNotifier(this.targetId);
