@@ -23,7 +23,45 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Sum earnings per creator for the period
+  // --- Subscription pool attribution (PRD-047) ---
+  const SUBSCRIPTION_POOL_USD = Number(Deno.env.get('SUBSCRIPTION_POOL_USD') ?? '500');
+
+  const { data: passPlays } = await supabase
+    .from('pass_watch_events')
+    .select('creator_id')
+    .gte('watched_at', period_start)
+    .lte('watched_at', period_end + 'T23:59:59Z');
+
+  if (passPlays && passPlays.length > 0) {
+    const playsByCreator = new Map<string, number>();
+    for (const row of passPlays) {
+      playsByCreator.set(row.creator_id, (playsByCreator.get(row.creator_id) ?? 0) + 1);
+    }
+    const totalPlays = passPlays.length;
+
+    for (const [creator_id, plays] of playsByCreator.entries()) {
+      const share = Number(((plays / totalPlays) * SUBSCRIPTION_POOL_USD).toFixed(4));
+
+      // Fetch this creator's earnings rows for the period
+      const { data: rows } = await supabase
+        .from('creator_earnings')
+        .select('id')
+        .eq('creator_id', creator_id)
+        .gte('date', period_start)
+        .lte('date', period_end);
+
+      if (!rows || rows.length === 0) continue; // skip if no energy-gate rows in period (v1 limitation)
+
+      const perRow = Number((share / rows.length).toFixed(4));
+      const ids = rows.map(r => r.id);
+      await supabase
+        .from('creator_earnings')
+        .update({ subscription_share_usd: perRow })
+        .in('id', ids);
+    }
+  }
+
+  // Sum earnings per creator for the period (after subscription attribution has been written)
   const { data: earnings } = await supabase
     .from("creator_earnings")
     .select("creator_id, energy_gate_revenue_usd, subscription_share_usd")
@@ -32,7 +70,6 @@ Deno.serve(async (req: Request) => {
 
   if (!earnings) return json({ error: "Failed to fetch earnings" }, 500);
 
-  // TODO(PRD-047): subscription_share_usd always 0 until subscription attribution is built
   // Aggregate per creator
   const totals = new Map<string, number>();
   for (const row of earnings) {

@@ -19,7 +19,6 @@ final _earningsSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) asyn
       .eq('creator_id', userId)
       .gte('date', monthStart);
 
-  // TODO(PRD-047): subscription_share_usd always 0 — subscription attribution deferred
   double monthTotal = 0;
   for (final row in (earnings as List)) {
     monthTotal += (row['energy_gate_revenue_usd'] as num).toDouble();

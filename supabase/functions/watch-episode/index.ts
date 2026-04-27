@@ -147,6 +147,29 @@ Deno.serve(async (req: Request) => {
     reference_id: episode_id,
   });
 
+  // Best-effort Drama Pass attribution (PRD-047) — fire-and-forget, does not block response
+  (async () => {
+    const { data: passProfile } = await supabase
+      .from('profiles')
+      .select('drama_pass_active')
+      .eq('id', userId)
+      .single();
+
+    if (passProfile?.drama_pass_active) {
+      const { data: ep } = await supabase
+        .from('episodes')
+        .select('creator_id')
+        .eq('id', episode_id)
+        .single();
+      if (ep?.creator_id) {
+        await supabase.from('pass_watch_events').upsert(
+          { user_id: userId, episode_id, creator_id: ep.creator_id },
+          { onConflict: 'user_id,episode_id', ignoreDuplicates: true }
+        );
+      }
+    }
+  })();
+
   return json({ unlocked: true, energy_remaining: newEnergy }, 200);
 });
 
