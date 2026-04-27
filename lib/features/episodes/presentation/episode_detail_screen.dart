@@ -71,7 +71,7 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
   Widget build(BuildContext context) {
     final choicesAsync = ref.watch(episodeChoicesProvider(widget.episode.id));
     final unlockedAsync = ref.watch(episodeUnlockedProvider(widget.episode.id));
-    final isUnlocked = unlockedAsync.valueOrNull ?? false;
+    final isUnlocked = unlockedAsync.isLoading ? true : (unlockedAsync.valueOrNull ?? false);
 
     return Scaffold(
       backgroundColor: bgDeep,
@@ -166,7 +166,7 @@ class _ChoiceBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: choicesAsync.when(
         data: (choices) {
-          // RLS denied access: episode is not free and not unlocked
+          // Empty choices: RLS denied access (non-free + not unlocked) or episode has no choices (e.g. series finale)
           if (choices.isEmpty && !episode.isFree && !isUnlocked) {
             return Column(
               mainAxisSize: MainAxisSize.min,
