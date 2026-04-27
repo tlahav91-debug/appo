@@ -23,6 +23,7 @@ import '../../features/episodes/presentation/series_screen.dart';
 import '../../features/episodes/presentation/episode_detail_screen.dart';
 import '../../features/social/presentation/social_feed_screen.dart';
 import '../../features/creator/presentation/creator_apply_screen.dart';
+import '../../features/creator/presentation/creator_earnings_screen.dart';
 import '../../features/creator/presentation/creator_status_screen.dart';
 import 'app_shell.dart';
 
@@ -126,6 +127,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/social', builder: (_, __) => const SocialFeedScreen()),
       GoRoute(path: '/creator/apply', builder: (_, __) => const CreatorApplyScreen()),
       GoRoute(path: '/creator/status', builder: (_, __) => const CreatorStatusScreen()),
+      GoRoute(path: '/creator/earnings', builder: (_, __) => const CreatorEarningsScreen()),
     ],
   );
 });
