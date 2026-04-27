@@ -84,6 +84,25 @@ class CreatorStatusScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () => context.go('/creator/analytics'),
+                    child: Container(
+                      height: 52,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: purpleGrad,
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Analytics',
+                        style: GoogleFonts.nunito(
+                          color: textCol, fontWeight: FontWeight.w800, fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),
