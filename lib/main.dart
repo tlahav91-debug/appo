@@ -65,8 +65,12 @@ class _DramaPlayAppState extends ConsumerState<DramaPlayApp> {
     super.didChangeDependencies();
     if (!_deepLinkInitialized) {
       _deepLinkInitialized = true;
-      _deepLinkService.init(ref.read(routerProvider));
+      _initDeepLinks();
     }
+  }
+
+  Future<void> _initDeepLinks() async {
+    await _deepLinkService.init(ref.read(routerProvider));
   }
 
   @override

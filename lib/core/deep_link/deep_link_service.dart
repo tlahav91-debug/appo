@@ -6,11 +6,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DeepLinkService {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
+  StreamSubscription<AuthState>? _authSub;
   Uri? _pendingUri;
 
   Future<void> init(GoRouter router) async {
     // Flush pending URI once auth resolves
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (data.session != null && _pendingUri != null) {
         _navigate(router, _pendingUri!);
         _pendingUri = null;
@@ -32,6 +33,8 @@ class DeepLinkService {
   void dispose() {
     _sub?.cancel();
     _sub = null;
+    _authSub?.cancel();
+    _authSub = null;
   }
 
   void _handleUri(GoRouter router, Uri uri) {
