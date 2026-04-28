@@ -56,4 +56,5 @@
 | PRD-059 | Series Completion Reward | ✅ Closed | b6cff8c → e479e03 | QA fixes: H1 coins always credited; L1 ledger idempotency_key |
 | PRD-060 | Starter Pack IAP Wire-Up | ✅ Closed | fde92ed → 8ef7fc0 | QA fixes: C1 atomic stamp prevents double-grant race; M1 isDismissible:false prevents swipe-dismiss StateError |
 | PRD-061 | Drama Pass IAP Wire-Up | ✅ Closed | 5b7a218 | Clean — activate-drama-pass Edge Fn, onPassPurchase callback, restoreAndCheck with 10s timeout |
-| PRD-062 | Notification Preferences | ✅ Closed | 737deba → commit | QA fix: L1 getAccessToken moved after opt-out check |
+| PRD-062 | Notification Preferences | ✅ Closed | 737deba → e09b2b2 | QA fix: L1 getAccessToken moved after opt-out check |
+| PRD-063 | Account Deletion | ✅ Closed | 3b10919 → ed61d10 | QA fix: M1 PopScope prevents back-button dismiss during deletion |
