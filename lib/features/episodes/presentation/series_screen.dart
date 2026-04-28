@@ -79,8 +79,16 @@ class _EpisodeList extends ConsumerWidget {
     final hasCharacters =
         ref.watch(seriesHasCharactersProvider(seriesId)).valueOrNull ?? false;
 
+    // Collectibles counts for Album chip
+    final collectiblesAsync = ref.watch(seriesCollectiblesProvider(seriesId));
+    final ownedAsync = ref.watch(ownedCollectibleIdsProvider);
+    final collectibles = collectiblesAsync.valueOrNull ?? [];
+    final owned = ownedAsync.valueOrNull ?? {};
+    final showAlbum = collectibles.isNotEmpty;
+
     // Number of pinned banners before episode rows
-    final bannerCount = (race != null ? 1 : 0) + (hasCharacters ? 1 : 0);
+    final bannerCount =
+        (race != null ? 1 : 0) + (hasCharacters ? 1 : 0) + (showAlbum ? 1 : 0);
 
     return CustomScrollView(
       slivers: [
@@ -90,11 +98,24 @@ class _EpisodeList extends ConsumerWidget {
         SliverList(
           delegate: SliverChildBuilderDelegate(
             (context, index) {
-              if (race != null && index == 0) {
-                return _RaceBanner(race: race);
+              int cursor = 0;
+              if (race != null) {
+                if (index == cursor) return _RaceBanner(race: race);
+                cursor++;
               }
-              if (hasCharacters && index == (race != null ? 1 : 0)) {
-                return _CharactersBanner(seriesId: seriesId);
+              if (hasCharacters) {
+                if (index == cursor) return _CharactersBanner(seriesId: seriesId);
+                cursor++;
+              }
+              if (showAlbum) {
+                if (index == cursor) {
+                  return _AlbumBanner(
+                    seriesId: seriesId,
+                    ownedCount: collectibles.where((c) => owned.contains(c.id)).length,
+                    total: collectibles.length,
+                  );
+                }
+                cursor++;
               }
               final episode = episodes[index - bannerCount];
               return _EpisodeRow(episode: episode);
@@ -327,6 +348,55 @@ class _EpisodeRow extends ConsumerWidget {
     final rng = Random.secure();
     final bytes = List.generate(16, (_) => rng.nextInt(256));
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Album banner — "Album (x/y)" chip that navigates to /series/:id/album
+// ---------------------------------------------------------------------------
+
+class _AlbumBanner extends StatelessWidget {
+  final String seriesId;
+  final int ownedCount;
+  final int total;
+
+  const _AlbumBanner({
+    required this.seriesId,
+    required this.ownedCount,
+    required this.total,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/series/$seriesId/album'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: purpleDim),
+        ),
+        child: Row(
+          children: [
+            const Text('🃏', style: TextStyle(fontSize: 20)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Album ($ownedCount/$total)',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: textDim, size: 20),
+          ],
+        ),
+      ),
+    );
   }
 }
 
