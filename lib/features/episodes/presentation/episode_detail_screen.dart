@@ -12,6 +12,8 @@ import '../application/episodes_provider.dart';
 import '../application/episode_progress_provider.dart';
 import '../domain/episode.dart';
 import 'reaction_row.dart';
+import '../application/comments_provider.dart';
+import 'comments_sheet.dart';
 import '../application/series_rating_provider.dart';
 import '../../social/application/social_provider.dart';
 import '../../collectibles/application/album_provider.dart';
@@ -145,6 +147,8 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
                   const SizedBox(height: 24),
                 ],
                 ReactionRow(episodeId: widget.episode.id),
+                const SizedBox(height: 12),
+                _CommentCountButton(episodeId: widget.episode.id),
                 const SizedBox(height: 100),
               ]),
             ),
@@ -604,6 +608,43 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// _CommentCountButton — shows live comment count, opens CommentsSheet on tap
+// ---------------------------------------------------------------------------
+
+class _CommentCountButton extends ConsumerWidget {
+  final String episodeId;
+
+  const _CommentCountButton({required this.episodeId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final commentCountAsync = ref.watch(commentCountProvider(episodeId));
+    final commentCount = commentCountAsync.valueOrNull ?? 0;
+
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: const Icon(Icons.chat_bubble_outline, color: textSec, size: 18),
+      label: Text(
+        '$commentCount',
+        style: const TextStyle(color: textSec),
+      ),
+      onPressed: () async {
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => CommentsSheet(episodeId: episodeId),
+        );
+        ref.invalidate(commentCountProvider(episodeId));
+      },
     );
   }
 }
