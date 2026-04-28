@@ -52,3 +52,4 @@
 | PRD-055 | Collectible Card Album | ✅ Closed | 991f931 → c481b55 | QA fixes: H1 mint-collectible race (upsert); H2 _AlbumBanner missing from SeriesScreen |
 | PRD-056 | Deep Link Incoming | ✅ Closed | b1127f9 → b67f7c3 | QA fixes: M1 unawaited init() race; L1 auth listener leak in dispose() |
 | PRD-057 | Trending Now | ✅ Closed | 6342c72 → 5e9cf69 | QA fix: M1 Trending header leaked into skeleton loading state |
+| PRD-058 | Episode Comments | ✅ Closed | fd41d06 → 7573cae | QA fixes: M1 realtime UPDATE events; L1 re-delete 409 guard |

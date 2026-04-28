@@ -115,3 +115,10 @@
 | ID | Title | Severity | Status |
 |----|-------|----------|--------|
 | BUG-057-M1 | "🔥 Trending" header shown during skeleton loading — should only appear with data | Medium | ✅ Fixed — header removed from loading branch; skeleton renders plain placeholders only |
+
+## PRD-058 — Episode Comments
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-058-M1 | Realtime channel only subscribed to INSERT — soft-delete UPDATE events missed by other viewers | Medium | ✅ Fixed — added onPostgresChanges for UPDATE events on same filter |
+| BUG-058-L1 | Soft-delete endpoint allows re-deleting already-deleted comment (redundant DB write) | Low | ✅ Fixed — 409 returned if deleted_at already set |
