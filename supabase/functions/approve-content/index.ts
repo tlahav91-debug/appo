@@ -90,14 +90,18 @@ Deno.serve(async (req: Request) => {
 
   if (epErr) return json({ error: epErr.message }, 500);
 
-  // Notify creator
-  await supabase.from("creator_notifications").insert({
-    user_id: sub.creator_id,
-    type: "content_approved",
-    title: "Content approved!",
-    body: `Your episode "${sub.title}" has been approved and is now live.`,
-    metadata: { submission_id },
-  });
+  // Notify creator — best-effort, do not propagate failures
+  try {
+    await supabase.from("creator_notifications").insert({
+      user_id: sub.creator_id,
+      type: "content_approved",
+      title: "Content approved!",
+      body: `Your episode "${sub.title}" has been approved and is now live.`,
+      metadata: { submission_id },
+    });
+  } catch (notifErr) {
+    console.error("Failed to insert content_approved notification:", notifErr);
+  }
 
   // Notify followers (best-effort)
   await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-followers`, {

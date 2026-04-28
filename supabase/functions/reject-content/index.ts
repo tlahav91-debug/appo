@@ -41,13 +41,17 @@ Deno.serve(async (req: Request) => {
 
   if (error) return json({ error: error.message }, 500);
 
-  await supabase.from("creator_notifications").insert({
-    user_id: existing.creator_id,
-    type: "content_rejected",
-    title: "Content not approved",
-    body: `Your episode "${existing.title}" was not approved.${rejectionReason ? ` Reason: ${rejectionReason}` : ''}`,
-    metadata: { submission_id, rejection_reason: rejectionReason ?? null },
-  });
+  try {
+    await supabase.from("creator_notifications").insert({
+      user_id: existing.creator_id,
+      type: "content_rejected",
+      title: "Content not approved",
+      body: `Your episode "${existing.title}" was not approved.${rejectionReason ? ` Reason: ${rejectionReason}` : ''}`,
+      metadata: { submission_id, rejection_reason: rejectionReason ?? null },
+    });
+  } catch (notifErr) {
+    console.error("Failed to insert content_rejected notification:", notifErr);
+  }
 
   return json({ ok: true });
 });
