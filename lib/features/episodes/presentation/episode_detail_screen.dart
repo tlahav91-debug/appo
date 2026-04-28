@@ -17,6 +17,8 @@ import 'comments_sheet.dart';
 import '../application/series_rating_provider.dart';
 import '../../social/application/social_provider.dart';
 import '../../collectibles/application/album_provider.dart';
+import '../../profile/application/profile_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EpisodeDetailScreen extends ConsumerStatefulWidget {
   final Episode episode;
@@ -519,6 +521,42 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
   int? _selectedRating;
   bool _ratingSubmitted = false;
 
+  bool _rewardLoading = true;
+  bool _alreadyClaimed = false;
+  int _coinsGranted = 0;
+  int _xpGranted = 0;
+  bool _leveledUp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _claimReward();
+  }
+
+  Future<void> _claimReward() async {
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'claim-series-completion',
+        body: {'series_id': widget.episode.seriesId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (mounted) {
+        setState(() {
+          _alreadyClaimed = data['already_claimed'] as bool? ?? false;
+          _coinsGranted = (data['coins_granted'] as num?)?.toInt() ?? 0;
+          _xpGranted = (data['xp_granted'] as num?)?.toInt() ?? 0;
+          _leveledUp = data['leveled_up'] as bool? ?? false;
+          _rewardLoading = false;
+        });
+        if (!_alreadyClaimed) {
+          ref.invalidate(profileProvider);
+        }
+      }
+    } catch (_) {
+      if (mounted) setState(() => _rewardLoading = false);
+    }
+  }
+
   Future<void> _rate(int stars) async {
     setState(() => _selectedRating = stars);
     await ref.read(ratingServiceProvider).submitRating(widget.episode.seriesId, stars);
@@ -552,11 +590,28 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
                 const SizedBox(height: 8),
                 Text('You\'ve finished all episodes.', style: GoogleFonts.sora(color: textSec, fontSize: 14), textAlign: TextAlign.center),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
-                  child: Text('+50 XP Bonus', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800, fontSize: 16)),
-                ),
+                if (_rewardLoading)
+                  const SizedBox(
+                    height: 36,
+                    width: 36,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: gold),
+                  )
+                else if (_alreadyClaimed)
+                  Text('✓ Reward already claimed', style: GoogleFonts.sora(color: textDim, fontSize: 13))
+                else ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(color: gold.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                    child: Text(
+                      '🪙 +$_coinsGranted coins  ⭐ +$_xpGranted XP',
+                      style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800, fontSize: 16),
+                    ),
+                  ),
+                  if (_leveledUp) ...[
+                    const SizedBox(height: 8),
+                    Text('🎉 Level Up!', style: GoogleFonts.nunito(color: pink, fontWeight: FontWeight.w900, fontSize: 18)),
+                  ],
+                ],
                 const SizedBox(height: 24),
                 // Star rating
                 Text(
