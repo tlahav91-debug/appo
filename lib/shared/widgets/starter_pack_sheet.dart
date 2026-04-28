@@ -20,6 +20,8 @@ class StarterPackSheet extends ConsumerStatefulWidget {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => StarterPackSheet(offer: offer),
     );

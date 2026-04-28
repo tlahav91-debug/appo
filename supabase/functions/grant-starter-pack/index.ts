@@ -48,33 +48,28 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Idempotency: already purchased returns 409
-  const { data: profile, error: profileErr } = await serviceClient
+  // Atomic idempotency stamp — only one concurrent request can win this UPDATE
+  // because the WHERE starter_pack_purchased_at IS NULL ensures a second request
+  // that races past here gets 0 rows back and returns 409.
+  const { data: stamped, error: stampErr } = await serviceClient
     .from("profiles")
-    .select("starter_pack_purchased_at")
+    .update({ starter_pack_purchased_at: new Date().toISOString() })
     .eq("id", userId)
-    .single();
+    .is("starter_pack_purchased_at", null)
+    .select("id");
 
-  if (profileErr || !profile) return json({ error: "Profile not found" }, 404);
-  if (profile.starter_pack_purchased_at !== null) {
+  if (stampErr) return json({ error: "Failed to update profile" }, 500);
+  if (!stamped || stamped.length === 0) {
     return json({ error: "already_purchased" }, 409);
   }
 
-  // Grant gems + coins in one RPC call
+  // Stamp succeeded — safe to grant currency (only one winner reaches here)
   const { error: rpcErr } = await serviceClient.rpc("increment_currency", {
     uid: userId,
     d_coins: COINS_REWARD,
     d_gems: GEMS_REWARD,
   });
   if (rpcErr) return json({ error: "Failed to grant currency" }, 500);
-
-  // Stamp starter_pack_purchased_at
-  const { error: updateErr } = await serviceClient
-    .from("profiles")
-    .update({ starter_pack_purchased_at: new Date().toISOString() })
-    .eq("id", userId);
-
-  if (updateErr) return json({ error: "Failed to update profile" }, 500);
 
   return json({ gems_granted: GEMS_REWARD, coins_granted: COINS_REWARD });
 });
