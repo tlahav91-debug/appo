@@ -355,7 +355,9 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return PopScope(
+      canPop: !_loading,
+      child: AlertDialog(
       backgroundColor: surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Text(
@@ -393,6 +395,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               : Text('Delete Account', style: GoogleFonts.nunito(color: lava, fontWeight: FontWeight.w700)),
         ),
       ],
+    ),
     );
   }
 }
