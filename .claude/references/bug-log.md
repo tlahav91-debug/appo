@@ -71,3 +71,27 @@
 | ID | Title | Severity | Status |
 |----|-------|----------|--------|
 | BUG-050-H2 | approve-content and reject-content return HTTP 500 on creator_notifications INSERT failure even though core operation succeeded | High | ✅ Fixed — notification INSERT wrapped in try-catch in both functions; failure logged, not propagated |
+
+## PRD-051 — Series Search
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-051-M1 | searchQueryProvider (global non-autoDispose StateProvider) retains last query after SearchScreen disposed — reopening screen shows empty field but stale results | Medium | ✅ Fixed — reset to '' in SearchScreen.dispose() |
+
+## PRD-052 — Following Feed
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| (none) | — | — | Clean pass |
+
+## PRD-053 — Creator Profile Editor
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-053-M2 | initState read creatorProfileProvider.valueOrNull synchronously — if provider not yet cached (direct navigation), all form fields init empty; bio could be saved blank overwriting existing value | Medium | ✅ Fixed — controllers lazy-initialized via profileAsync.whenData(_initControllers) with _initialized guard |
+
+## PRD-054 — Share / Deep Link
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| (none) | — | — | Clean pass |

@@ -45,7 +45,7 @@
 | PRD-048 | Creator Analytics Dashboard | ✅ Closed | 2d946e2 | Clean — creator_episode_stats view, CreatorAnalyticsScreen, Analytics tile in creator portal |
 | PRD-049 | Public Creator Profiles | ✅ Closed | 78b6776 + 77f3631 | QA fix: C-1 creator_profiles_select_approved policy dropped; public_creator_profiles view owner set to postgres |
 | PRD-050 | Creator Notifications | ✅ Closed | 3241b9b + 77f3631 | QA fix: H-2 creator_notifications INSERT wrapped in try-catch in approve-content and reject-content |
-| PRD-051 | Series Search | 🔨 In Progress | — | Approved 2026-04-28 |
-| PRD-052 | Following Feed | 🔨 In Progress | — | Approved 2026-04-28 |
-| PRD-053 | Creator Profile Editor | 🔨 In Progress | — | Approved 2026-04-28 |
-| PRD-054 | Share / Deep Link | 🔨 In Progress | — | Approved 2026-04-28 |
+| PRD-051 | Series Search | ✅ Closed | fdfa1b4 + 0f2cfd4 | QA fix: M-1 searchQueryProvider reset in dispose() |
+| PRD-052 | Following Feed | ✅ Closed | f318c13 | Clean — Following tab with purpleGrad chip, empty state, pull-to-refresh |
+| PRD-053 | Creator Profile Editor | ✅ Closed | f7ab122 + 0f2cfd4 | QA fix: M-2 lazy _initControllers via profileAsync.whenData() |
+| PRD-054 | Share / Deep Link | ✅ Closed | f7ab122 | Clean — shareSeries/shareCreator via share_plus; deep-link TODO for Sprint 12 |
