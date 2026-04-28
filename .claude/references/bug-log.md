@@ -95,3 +95,10 @@
 | ID | Title | Severity | Status |
 |----|-------|----------|--------|
 | (none) | — | — | Clean pass |
+
+## PRD-055 — Collectible Card Album
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-055-H1 | mint-collectible SELECT-then-INSERT race condition — concurrent requests hit Postgres UNIQUE constraint returning 500 | High | ✅ Fixed — replaced with upsert ON CONFLICT (user_id,collectible_id) DO NOTHING; count used to detect already_owned |
+| BUG-055-H2 | _AlbumBanner missing from SeriesScreen — no discoverable path to album from series detail | High | ✅ Fixed — _AlbumBanner widget added; watches providers with valueOrNull fallbacks; navigates to /series/:id/album |
