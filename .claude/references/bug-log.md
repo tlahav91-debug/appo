@@ -59,3 +59,15 @@
 | H-3 | Race banner always showed "tap to join" | High | ✅ Fixed |
 | H-4 | Countdown flash to "Race Ended" on load | High | ✅ Fixed |
 | M-5 | raceJoinProvider was singleton (shared join state) | Medium | ✅ Fixed |
+
+## PRD-049 — Public Creator Profiles
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-049-C1 | creator_profiles_select_approved policy exposes payout_email to all authenticated users via direct table query | Critical | ✅ Fixed — policy dropped; public_creator_profiles view owner set to postgres (bypasses RLS internally); GRANT SELECT on view to authenticated |
+
+## PRD-050 — Creator Notifications
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-050-H2 | approve-content and reject-content return HTTP 500 on creator_notifications INSERT failure even though core operation succeeded | High | ✅ Fixed — notification INSERT wrapped in try-catch in both functions; failure logged, not propagated |

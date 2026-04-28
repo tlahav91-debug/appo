@@ -41,7 +41,7 @@
 | PRD-043 | Content Upload Pipeline | ✅ Closed | 8f098e0 + beecf05 | QA fixes: C-4 Upload-Length now set from file.size; H-10 fresh token fetched at each Edge Fn call in creator portal |
 | PRD-045 | Admin Moderation Dashboard | ✅ Closed | 581750c + 579cc0e | QA fixes: C-1 admin secret moved to server-side API route; C-2 CF URL uses CF_CUSTOMER_SUBDOMAIN; C-3 series INSERT drops non-existent columns; H-4 reject-content status guard; H-5 query error handling; H-6 optimistic lock on approve-content |
 | PRD-046 | Revenue Share & Payouts | ✅ Closed | 3d731cd + 579cc0e | QA fixes: C-1 atomic increment_energy_revenue RPC (migration 039); C-2 creator lookup via episodes.creator_id; C-3 upsert with UNIQUE constraint prevents duplicate payouts; H-4 process-payout status update errors handled; H-5 dead payout_email join removed; M-7/8 is_creator guard on earnings screen |
-| PRD-047 | Subscription Revenue Attribution | 🔨 In Progress | — | Approved 2026-04-27 |
-| PRD-048 | Creator Analytics Dashboard | 🔨 In Progress | — | Approved 2026-04-27 |
-| PRD-049 | Public Creator Profiles | 🔨 In Progress | — | Approved 2026-04-27 |
-| PRD-050 | Creator Notifications | 🔨 In Progress | — | Approved 2026-04-27 |
+| PRD-047 | Subscription Revenue Attribution | ✅ Closed | 6015a4c | Clean — pass_watch_events table, watch-episode attribution, calculate-monthly-earnings pool split |
+| PRD-048 | Creator Analytics Dashboard | ✅ Closed | 2d946e2 | Clean — creator_episode_stats view, CreatorAnalyticsScreen, Analytics tile in creator portal |
+| PRD-049 | Public Creator Profiles | ✅ Closed | 78b6776 + 77f3631 | QA fix: C-1 creator_profiles_select_approved policy dropped; public_creator_profiles view owner set to postgres |
+| PRD-050 | Creator Notifications | ✅ Closed | 3241b9b + 77f3631 | QA fix: H-2 creator_notifications INSERT wrapped in try-catch in approve-content and reject-content |
