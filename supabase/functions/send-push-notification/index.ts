@@ -124,15 +124,12 @@ Deno.serve(async (req: Request) => {
   const projectId = Deno.env.get("FCM_PROJECT_ID");
   if (!saJson || !projectId) return json({ error: "FCM not configured" }, 500);
 
-  const sa: ServiceAccount = JSON.parse(saJson);
-  const accessToken = await getAccessToken(sa);
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     serviceRoleKey,
   );
 
-  // Check notification preference opt-out if type is provided
+  // Check notification preference opt-out before any FCM work
   if (notification_type) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -144,6 +141,9 @@ Deno.serve(async (req: Request) => {
       return json({ sent: 0, reason: "opted_out" });
     }
   }
+
+  const sa: ServiceAccount = JSON.parse(saJson);
+  const accessToken = await getAccessToken(sa);
 
   const { data: tokens, error } = await supabase
     .from("push_tokens")
