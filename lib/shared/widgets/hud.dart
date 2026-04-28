@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
+import '../../features/creator/application/notifications_provider.dart';
 import '../../features/inbox/application/inbox_provider.dart';
 import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/profile/application/profile_provider.dart';
@@ -147,6 +148,33 @@ class _HudContent extends ConsumerWidget {
                 );
               }),
               const SizedBox(width: 12),
+              // Notification bell
+              Consumer(
+                builder: (context, ref, _) {
+                  final unread = ref.watch(unreadNotificationCountProvider);
+                  return Stack(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.notifications_outlined, color: textCol),
+                        onPressed: () => context.push('/notifications'),
+                      ),
+                      if (unread > 0)
+                        Positioned(
+                          right: 6, top: 6,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(color: gold, shape: BoxShape.circle),
+                            child: Text(
+                              unread > 99 ? '99+' : '$unread',
+                              style: GoogleFonts.sora(color: bgDeep, fontSize: 9, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(width: 4),
               // Settings
               GestureDetector(
                 onTap: () => _showSettings(context, ref),
