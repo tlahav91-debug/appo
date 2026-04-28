@@ -4,7 +4,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/gem_pack.dart' as domain;
 
-const _kProductIds = {'gems_80', 'gems_500', 'gems_1500', 'drama_starter_pack'};
+const _kProductIds = {'gems_80', 'gems_500', 'gems_1500', 'drama_starter_pack', 'drama_pass_monthly'};
 
 class IAPService {
   final _iap = InAppPurchase.instance;
@@ -15,6 +15,9 @@ class IAPService {
 
   // Called when a non-gem IAP (starter pack) resolves
   void Function(String productId, domain.PurchaseResult result)? onNonGemPurchase;
+
+  // Called when drama_pass_monthly purchase or restore resolves
+  void Function(String productId, domain.PurchaseResult result)? onPassPurchase;
 
   // Last validation error — callers may surface this to UI
   String? lastValidationError;
@@ -40,13 +43,26 @@ class IAPService {
           p.status == PurchaseStatus.restored) {
         if (p.productID == 'drama_starter_pack') {
           await _grantStarterPack(p);
+        } else if (p.productID == 'drama_pass_monthly') {
+          await _activateDramaPass(p);
         } else {
           await _validate(p);
         }
         await _iap.completePurchase(p);
       } else if (p.status == PurchaseStatus.error ||
                  p.status == PurchaseStatus.cancelled) {
-        if (p.productID == 'drama_starter_pack') {
+        if (p.productID == 'drama_pass_monthly') {
+          onPassPurchase?.call(
+            p.productID,
+            domain.PurchaseResult(
+              status: p.status == PurchaseStatus.cancelled
+                  ? domain.PurchaseStatus.cancelled
+                  : domain.PurchaseStatus.error,
+              error: p.error?.message,
+              productId: p.productID,
+            ),
+          );
+        } else if (p.productID == 'drama_starter_pack') {
           onNonGemPurchase?.call(
             p.productID,
             domain.PurchaseResult(
@@ -102,6 +118,34 @@ class IAPService {
       );
     } catch (e) {
       onNonGemPurchase?.call(
+        p.productID,
+        domain.PurchaseResult(
+          status: domain.PurchaseStatus.error,
+          error: e.toString(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _activateDramaPass(PurchaseDetails p) async {
+    try {
+      final receiptData = Platform.isIOS
+          ? p.verificationData.serverVerificationData
+          : p.verificationData.localVerificationData;
+      await Supabase.instance.client.functions.invoke(
+        'activate-drama-pass',
+        body: {
+          'platform': Platform.isIOS ? 'ios' : 'android',
+          'receipt_data': receiptData,
+          'transaction_id': p.purchaseID ?? p.productID,
+        },
+      );
+      onPassPurchase?.call(
+        p.productID,
+        const domain.PurchaseResult(status: domain.PurchaseStatus.success),
+      );
+    } catch (e) {
+      onPassPurchase?.call(
         p.productID,
         domain.PurchaseResult(
           status: domain.PurchaseStatus.error,

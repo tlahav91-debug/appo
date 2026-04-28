@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../shop/application/iap_provider.dart';
 import '../../shop/domain/gem_pack.dart';
 import '../data/drama_pass_service.dart';
 
-final dramaPassServiceProvider = Provider<DramaPassService>((ref) => DramaPassService());
+final dramaPassServiceProvider = Provider<DramaPassService>((ref) {
+  return DramaPassService(ref.read(iapServiceProvider));
+});
 
 final passLocalizedPriceProvider = FutureProvider<String?>((ref) {
   return ref.read(dramaPassServiceProvider).fetchLocalizedPrice();
