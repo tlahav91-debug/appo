@@ -1,0 +1,39 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+Deno.serve(async (req: Request) => {
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+  const jwt = authHeader.slice(7);
+
+  let body: { notification_id?: string };
+  try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+
+  const { notification_id } = body;
+  if (!notification_id) return json({ error: "notification_id required" }, 400);
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
+  if (authErr || !user) return json({ error: "Unauthorized" }, 401);
+
+  const { error } = await supabase
+    .from("creator_notifications")
+    .update({ is_read: true })
+    .eq("id", notification_id)
+    .eq("user_id", user.id);
+
+  if (error) return json({ error: error.message }, 500);
+  return json({ ok: true });
+});
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}

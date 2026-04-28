@@ -83,6 +83,14 @@ Deno.serve(async (req: Request) => {
     console.error(`CRITICAL: Stripe transfer ${stripeData.id} succeeded but DB update failed:`, paidErr.message);
   }
 
+  await supabase.from("creator_notifications").insert({
+    user_id: payout.creator_id,
+    type: "payout_processed",
+    title: "Payout processed!",
+    body: `$${Number(payout.amount_usd).toFixed(2)} has been sent to your account.`,
+    metadata: { payout_id: payout.id, amount_usd: payout.amount_usd },
+  });
+
   return json({ ok: true, transfer_id: stripeData.id });
 });
 

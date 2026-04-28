@@ -147,7 +147,7 @@ Deno.serve(async (req: Request) => {
     reference_id: episode_id,
   });
 
-  // Best-effort Drama Pass attribution (PRD-047) — fire-and-forget, does not block response
+  // Best-effort Drama Pass attribution + milestone notifications — fire-and-forget
   (async () => {
     const { data: passProfile } = await supabase
       .from('profiles')
@@ -155,17 +155,53 @@ Deno.serve(async (req: Request) => {
       .eq('id', userId)
       .single();
 
-    if (passProfile?.drama_pass_active) {
-      const { data: ep } = await supabase
-        .from('episodes')
-        .select('creator_id')
-        .eq('id', episode_id)
-        .single();
-      if (ep?.creator_id) {
-        await supabase.from('pass_watch_events').upsert(
-          { user_id: userId, episode_id, creator_id: ep.creator_id },
-          { onConflict: 'user_id,episode_id', ignoreDuplicates: true }
-        );
+    const { data: ep } = await supabase
+      .from('episodes')
+      .select('creator_id')
+      .eq('id', episode_id)
+      .single();
+
+    // Drama Pass attribution (PRD-047)
+    if (passProfile?.drama_pass_active && ep?.creator_id) {
+      await supabase.from('pass_watch_events').upsert(
+        { user_id: userId, episode_id, creator_id: ep.creator_id },
+        { onConflict: 'user_id,episode_id', ignoreDuplicates: true }
+      );
+    }
+
+    // Milestone check — best effort
+    if (ep?.creator_id) {
+      const { count: totalViews } = await supabase
+        .from("episode_unlocks")
+        .select("id", { count: "exact", head: true })
+        .eq("episode_id", episode_id);
+
+      const thresholds = [
+        { count: 100, type: "milestone_100_views", label: "100" },
+        { count: 1000, type: "milestone_1k_views", label: "1,000" },
+        { count: 10000, type: "milestone_10k_views", label: "10,000" },
+      ];
+
+      for (const t of thresholds) {
+        if ((totalViews ?? 0) >= t.count) {
+          // Check if milestone notification already sent
+          const { data: existing } = await supabase
+            .from("creator_notifications")
+            .select("id")
+            .eq("user_id", ep.creator_id)
+            .eq("type", t.type)
+            .contains("metadata", { episode_id })
+            .maybeSingle();
+          if (!existing) {
+            await supabase.from("creator_notifications").insert({
+              user_id: ep.creator_id,
+              type: t.type,
+              title: `${t.label} views milestone!`,
+              body: `Your episode has reached ${t.label} views. Keep it up!`,
+              metadata: { episode_id },
+            });
+          }
+        }
       }
     }
   })();

@@ -21,23 +21,34 @@ Deno.serve(async (req: Request) => {
 
   const { data: existing } = await supabase
     .from("content_submissions")
-    .select("id, status")
+    .select("id, status, creator_id, title")
     .eq("id", submission_id)
     .maybeSingle();
 
   if (!existing) return json({ error: "Submission not found" }, 404);
   if (existing.status !== "submitted") return json({ error: "Submission is not in submitted status" }, 409);
 
+  const rejectionReason = reason ?? "Submission did not meet content guidelines.";
+
   const { error } = await supabase
     .from("content_submissions")
     .update({
       status: "rejected",
-      rejection_reason: reason ?? "Submission did not meet content guidelines.",
+      rejection_reason: rejectionReason,
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", submission_id);
 
   if (error) return json({ error: error.message }, 500);
+
+  await supabase.from("creator_notifications").insert({
+    user_id: existing.creator_id,
+    type: "content_rejected",
+    title: "Content not approved",
+    body: `Your episode "${existing.title}" was not approved.${rejectionReason ? ` Reason: ${rejectionReason}` : ''}`,
+    metadata: { submission_id, rejection_reason: rejectionReason ?? null },
+  });
+
   return json({ ok: true });
 });
 

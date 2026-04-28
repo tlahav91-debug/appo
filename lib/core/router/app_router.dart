@@ -26,6 +26,7 @@ import '../../features/creator/presentation/creator_apply_screen.dart';
 import '../../features/creator/presentation/creator_analytics_screen.dart';
 import '../../features/creator/presentation/creator_earnings_screen.dart';
 import '../../features/creator/presentation/creator_status_screen.dart';
+import '../../features/creator/presentation/public_creator_profile_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -130,6 +131,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/creator/status', builder: (_, __) => const CreatorStatusScreen()),
       GoRoute(path: '/creator/earnings', builder: (_, __) => const CreatorEarningsScreen()),
       GoRoute(path: '/creator/analytics', builder: (_, __) => const CreatorAnalyticsScreen()),
+      GoRoute(
+        path: '/creator/:creatorId',
+        builder: (_, state) => PublicCreatorProfileScreen(
+          creatorId: state.pathParameters['creatorId']!,
+        ),
+      ),
     ],
   );
 });

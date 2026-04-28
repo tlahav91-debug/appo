@@ -90,6 +90,28 @@ Deno.serve(async (req: Request) => {
 
   if (epErr) return json({ error: epErr.message }, 500);
 
+  // Notify creator
+  await supabase.from("creator_notifications").insert({
+    user_id: sub.creator_id,
+    type: "content_approved",
+    title: "Content approved!",
+    body: `Your episode "${sub.title}" has been approved and is now live.`,
+    metadata: { submission_id },
+  });
+
+  // Notify followers (best-effort)
+  await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-followers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-secret": Deno.env.get("ADMIN_SECRET") ?? "",
+    },
+    body: JSON.stringify({
+      creator_id: sub.creator_id,
+      episode_title: sub.title,
+    }),
+  }).catch(() => {}); // fire and forget
+
   return json({ ok: true, episode_id: episode.id, series_id: resolvedSeriesId });
 });
 

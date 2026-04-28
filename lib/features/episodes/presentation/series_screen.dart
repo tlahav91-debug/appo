@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../energy/presentation/energy_gate.dart';
@@ -15,6 +16,7 @@ import '../../affinity/application/affinity_provider.dart'
     show seriesHasCharactersProvider;
 import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
+import '../../creator/application/creator_provider.dart';
 import 'episode_card.dart';
 import '../application/episode_progress_provider.dart';
 import '../application/series_rating_provider.dart';
@@ -185,6 +187,28 @@ class _SeriesHeroHeader extends ConsumerWidget {
                   fontSize: 22,
                 ),
               ),
+              if (series!.creatorId != null)
+                Builder(builder: (context) {
+                  final creatorAsync = ref.watch(publicCreatorProfileProvider(series!.creatorId!));
+                  final displayName = creatorAsync.valueOrNull?['display_name'] as String?;
+                  if (displayName == null) return const SizedBox.shrink();
+                  return GestureDetector(
+                    onTap: () {
+                      Posthog().capture(
+                        eventName: 'creator_profile_tapped',
+                        properties: {'creator_id': series!.creatorId},
+                      );
+                      context.push('/creator/${series!.creatorId}');
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'by $displayName',
+                        style: GoogleFonts.sora(color: textSec, fontSize: 12),
+                      ),
+                    ),
+                  );
+                }),
               if (series!.description != null) ...[
                 const SizedBox(height: 4),
                 Text(

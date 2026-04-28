@@ -9,6 +9,7 @@ class SeriesDetail {
   final String? coverUrl;
   final bool isVip;
   final int totalEpisodes;
+  final String? creatorId;
 
   const SeriesDetail({
     required this.id,
@@ -18,6 +19,7 @@ class SeriesDetail {
     this.coverUrl,
     required this.isVip,
     required this.totalEpisodes,
+    this.creatorId,
   });
 
   factory SeriesDetail.fromJson(Map<String, dynamic> j) => SeriesDetail(
@@ -28,6 +30,7 @@ class SeriesDetail {
     coverUrl: j['cover_url'] as String?,
     isVip: j['is_vip'] as bool? ?? false,
     totalEpisodes: (j['total_episodes'] as num?)?.toInt() ?? 0,
+    creatorId: j['creator_id'] as String?,
   );
 }
 
@@ -35,7 +38,7 @@ final seriesDetailProvider = FutureProvider.family<SeriesDetail, String>(
   (ref, seriesId) async {
     final data = await Supabase.instance.client
         .from('series')
-        .select('id, title, description, genre, cover_url, is_vip, total_episodes')
+        .select('id, title, description, genre, cover_url, is_vip, total_episodes, creator_id')
         .eq('id', seriesId)
         .single();
     return SeriesDetail.fromJson(data as Map<String, dynamic>);

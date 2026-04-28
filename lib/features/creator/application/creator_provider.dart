@@ -1,6 +1,39 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Public creator profile — keyed by creatorId
+final publicCreatorProfileProvider = FutureProvider.family<Map<String, dynamic>?, String>((ref, creatorId) async {
+  final data = await Supabase.instance.client
+      .from('public_creator_profiles')
+      .select()
+      .eq('id', creatorId)
+      .maybeSingle();
+  return data;
+});
+
+// Creator's approved series
+final creatorSeriesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, creatorId) async {
+  final data = await Supabase.instance.client
+      .from('series')
+      .select('id, title, thumbnail_url, genre')
+      .eq('creator_id', creatorId)
+      .order('created_at', ascending: false);
+  return List<Map<String, dynamic>>.from(data as List);
+});
+
+// Is current user following this creator?
+final creatorFollowStateProvider = FutureProvider.family<bool, String>((ref, creatorId) async {
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  if (userId == null) return false;
+  final data = await Supabase.instance.client
+      .from('creator_follows')
+      .select('follower_id')
+      .eq('follower_id', userId)
+      .eq('creator_id', creatorId)
+      .maybeSingle();
+  return data != null;
+});
+
 final creatorAnalyticsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
   if (userId == null) return {'summary': {}, 'episodes': []};
