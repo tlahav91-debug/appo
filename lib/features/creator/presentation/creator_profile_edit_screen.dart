@@ -15,22 +15,24 @@ class CreatorProfileEditScreen extends ConsumerStatefulWidget {
 
 class _CreatorProfileEditScreenState
     extends ConsumerState<CreatorProfileEditScreen> {
-  late final TextEditingController _displayNameCtrl;
-  late final TextEditingController _bioCtrl;
-  late final TextEditingController _payoutEmailCtrl;
+  final _displayNameCtrl = TextEditingController();
+  final _bioCtrl = TextEditingController();
+  final _payoutEmailCtrl = TextEditingController();
   bool _loading = false;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    final profile = ref.read(creatorProfileProvider).valueOrNull;
-    _displayNameCtrl =
-        TextEditingController(text: profile?['display_name'] as String? ?? '');
-    _bioCtrl =
-        TextEditingController(text: profile?['bio'] as String? ?? '');
-    _payoutEmailCtrl =
-        TextEditingController(text: profile?['payout_email'] as String? ?? '');
     _bioCtrl.addListener(() => setState(() {}));
+  }
+
+  void _initControllers(Map<String, dynamic> profile) {
+    if (_initialized) return;
+    _initialized = true;
+    _displayNameCtrl.text = profile['display_name'] as String? ?? '';
+    _bioCtrl.text = profile['bio'] as String? ?? '';
+    _payoutEmailCtrl.text = profile['payout_email'] as String? ?? '';
   }
 
   @override
@@ -115,6 +117,9 @@ class _CreatorProfileEditScreenState
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(creatorProfileProvider);
+    profileAsync.whenData(_initControllers);
+
     final bioLength = _bioCtrl.text.length;
 
     return Scaffold(

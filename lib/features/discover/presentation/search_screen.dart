@@ -23,6 +23,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    ref.read(searchQueryProvider.notifier).state = '';
     super.dispose();
   }
 
