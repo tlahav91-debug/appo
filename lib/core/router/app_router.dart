@@ -48,7 +48,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     refreshListenable: _AuthStateNotifier(),
     // Routes double as deep link handlers for appo.app/* URLs
-    // TODO(deep-link-incoming): wire app_links for cold-start handling in Sprint 12
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),

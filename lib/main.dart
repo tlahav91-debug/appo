@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:posthog_flutter/posthog_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/deep_link/deep_link_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/onboarding/application/onboarding_provider.dart';
@@ -50,10 +51,28 @@ class DramaPlayApp extends ConsumerStatefulWidget {
 }
 
 class _DramaPlayAppState extends ConsumerState<DramaPlayApp> {
+  final _deepLinkService = DeepLinkService();
+  bool _deepLinkInitialized = false;
+
   @override
   void initState() {
     super.initState();
     _wireNotificationNavigation();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_deepLinkInitialized) {
+      _deepLinkInitialized = true;
+      _deepLinkService.init(ref.read(routerProvider));
+    }
+  }
+
+  @override
+  void dispose() {
+    _deepLinkService.dispose();
+    super.dispose();
   }
 
   void _wireNotificationNavigation() {
