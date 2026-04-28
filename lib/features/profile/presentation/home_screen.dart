@@ -60,6 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _handleRefresh() async {
     ref.invalidate(featuredSeriesProvider);
     ref.invalidate(allSeriesForGridProvider);
+    ref.invalidate(trendingSeriesProvider);
     ref.invalidate(inProgressProvider);
     ref.invalidate(userClubProvider);
     ref.invalidate(activeQuestsProvider);
@@ -70,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final featuredAsync = ref.watch(featuredSeriesProvider);
     final allSeriesAsync = ref.watch(allSeriesForGridProvider);
+    final trendingAsync = ref.watch(trendingSeriesProvider);
     final inProgressAsync = ref.watch(inProgressProvider);
     final clubAsync = ref.watch(userClubProvider);
     final activeQuestsAsync = ref.watch(activeQuestsProvider);
@@ -162,6 +164,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // 4. Club Activity Strip
                 // ----------------------------------------------------------------
                 ..._buildClubStrip(clubAsync),
+
+                // ----------------------------------------------------------------
+                // 4b. Trending Now Row
+                // ----------------------------------------------------------------
+                _TrendingRow(trendingAsync: trendingAsync),
 
                 // ----------------------------------------------------------------
                 // 5. "All Dramas" section header
@@ -677,6 +684,173 @@ class _ContinueCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Trending Now Row
+// ---------------------------------------------------------------------------
+
+class _TrendingRow extends StatelessWidget {
+  final AsyncValue<List<HomeSeries>> trendingAsync;
+
+  const _TrendingRow({required this.trendingAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return trendingAsync.when(
+      loading: () => SliverToBoxAdapter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                '🔥 Trending',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 120,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: List.generate(
+                  3,
+                  (_) => Container(
+                    width: 80,
+                    height: 120,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (_, __) =>
+          const SliverToBoxAdapter(child: SizedBox.shrink()),
+      data: (series) {
+        if (series.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  '🔥 Trending',
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 160,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: series.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: _TrendingPosterCard(
+                      series: series[index],
+                      rank: index + 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Trending Poster Card
+// ---------------------------------------------------------------------------
+
+class _TrendingPosterCard extends StatelessWidget {
+  final HomeSeries series;
+  final int rank;
+
+  const _TrendingPosterCard({
+    required this.series,
+    required this.rank,
+  });
+
+  Widget _placeholder() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: purpleGrad,
+        borderRadius: BorderRadius.circular(10),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/series/${series.id}'),
+      child: SizedBox(
+        width: 90,
+        height: 130,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Cover image or placeholder
+              if (series.coverUrl != null && series.coverUrl!.isNotEmpty)
+                Image.network(
+                  series.coverUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _placeholder(),
+                )
+              else
+                _placeholder(),
+
+              // Rank badge — top left
+              Positioned(
+                top: 6,
+                left: 6,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    gradient: purpleGrad,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$rank',
+                    style: GoogleFonts.nunito(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

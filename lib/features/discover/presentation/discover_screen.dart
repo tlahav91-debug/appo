@@ -474,6 +474,17 @@ class _FollowingChip extends StatelessWidget {
   }
 }
 
+// ── Count formatter ────────────────────────────────────────────────────────────
+
+String _formatCount(int count) {
+  if (count >= 1000) {
+    final k = count / 1000;
+    // Show one decimal place only when needed (e.g. 1.2k, not 1.0k)
+    return '${k == k.truncateToDouble() ? k.toInt() : k.toStringAsFixed(1)}k';
+  }
+  return '$count';
+}
+
 // ── Private poster card ────────────────────────────────────────────────────────
 
 class _SeriesPosterCard extends StatelessWidget {
@@ -559,6 +570,29 @@ class _SeriesPosterCard extends StatelessWidget {
                       color: bgDeep,
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+
+            // Trending badge — top right, below VIP badge when both present
+            if (series.viewCount7d >= 100)
+              Positioned(
+                top: series.isVip ? 30 : 6,
+                right: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: purpleDim,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '🔥 ${_formatCount(series.viewCount7d)}',
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),

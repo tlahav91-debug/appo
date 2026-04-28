@@ -13,6 +13,7 @@ class DiscoverSeries {
   final bool isVip;
   final int totalEpisodes;
   final DateTime createdAt;
+  final int viewCount7d;
 
   const DiscoverSeries({
     required this.id,
@@ -23,6 +24,7 @@ class DiscoverSeries {
     required this.isVip,
     required this.totalEpisodes,
     required this.createdAt,
+    this.viewCount7d = 0,
   });
 
   factory DiscoverSeries.fromJson(Map<String, dynamic> j) => DiscoverSeries(
@@ -34,15 +36,16 @@ class DiscoverSeries {
     isVip: j['is_vip'] as bool? ?? false,
     totalEpisodes: (j['total_episodes'] as num?)?.toInt() ?? 0,
     createdAt: DateTime.parse(j['created_at'] as String),
+    viewCount7d: (j['view_count_7d'] as num?)?.toInt() ?? 0,
   );
 }
 
-// Loads all series once; filtering is done client-side
+// Loads all series once; filtering is done client-side.
+// Queries the series_trending view to include 7-day watch signal ranking.
 final allSeriesProvider = FutureProvider<List<DiscoverSeries>>((ref) async {
   final data = await Supabase.instance.client
-      .from('series')
-      .select('id, title, description, genre, cover_url, is_vip, total_episodes, created_at')
-      .order('created_at', ascending: false);
+      .from('series_trending')
+      .select('id, title, description, genre, cover_url, is_vip, total_episodes, created_at, view_count_7d');
   return (data as List).map((e) => DiscoverSeries.fromJson(e as Map<String, dynamic>)).toList();
 });
 
