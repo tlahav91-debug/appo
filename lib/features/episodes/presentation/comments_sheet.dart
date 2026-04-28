@@ -39,6 +39,17 @@ class _CommentsSheetState extends ConsumerState<CommentsSheet> {
           ),
           callback: (_) => _loadComments(),
         )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'episode_comments',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'episode_id',
+            value: widget.episodeId,
+          ),
+          callback: (_) => _loadComments(),
+        )
         .subscribe();
   }
 

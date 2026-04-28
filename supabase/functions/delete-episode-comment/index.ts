@@ -51,6 +51,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Forbidden" }, 403);
   }
 
+  if (comment.deleted_at) {
+    return json({ error: "Already deleted" }, 409);
+  }
+
   // Soft-delete: set deleted_at
   const { error: updateError } = await serviceClient
     .from("episode_comments")
