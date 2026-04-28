@@ -30,6 +30,7 @@ import '../../features/creator/presentation/creator_profile_edit_screen.dart';
 import '../../features/creator/presentation/notifications_screen.dart';
 import '../../features/creator/presentation/public_creator_profile_screen.dart';
 import '../../features/discover/presentation/search_screen.dart';
+import '../../features/profile/presentation/notification_prefs_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -151,6 +152,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications',
         builder: (_, __) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (_, __) => const NotificationPrefsScreen(),
       ),
       GoRoute(
         path: '/search',

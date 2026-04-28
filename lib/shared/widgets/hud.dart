@@ -265,6 +265,20 @@ class _HudContent extends ConsumerWidget {
                 },
               ),
             ListTile(
+              leading: const Icon(Icons.notifications_outlined, color: cyan),
+              title: Text(
+                'Notifications 🔔',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/settings/notifications');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout, color: pink),
               title: Text(
                 'Sign out',

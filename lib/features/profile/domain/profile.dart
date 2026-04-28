@@ -14,6 +14,14 @@ class Profile {
   final String? referralCode;
   final List<String> genrePreferences;
   final bool isCreator;
+  final Map<String, bool> notificationPrefs;
+
+  static const _defaultNotifPrefs = {
+    'new_episodes': true,
+    'streak_reminder': true,
+    'creator_updates': true,
+    'inbox_rewards': true,
+  };
 
   const Profile({
     required this.id,
@@ -31,6 +39,7 @@ class Profile {
     this.referralCode,
     this.genrePreferences = const [],
     this.isCreator = false,
+    this.notificationPrefs = _defaultNotifPrefs,
   });
 
   String get displayName => username ?? 'Player';
@@ -58,7 +67,18 @@ class Profile {
         genrePreferences: List<String>.from(
             json['genre_preferences'] as List? ?? []),
         isCreator: json['is_creator'] as bool? ?? false,
+        notificationPrefs: _parseNotifPrefs(json['notification_prefs']),
       );
+
+  static Map<String, bool> _parseNotifPrefs(dynamic raw) {
+    if (raw is! Map) return Map.unmodifiable(_defaultNotifPrefs);
+    return Map.unmodifiable({
+      'new_episodes': raw['new_episodes'] as bool? ?? true,
+      'streak_reminder': raw['streak_reminder'] as bool? ?? true,
+      'creator_updates': raw['creator_updates'] as bool? ?? true,
+      'inbox_rewards': raw['inbox_rewards'] as bool? ?? true,
+    });
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -76,6 +96,7 @@ class Profile {
         'referral_code': referralCode,
         'genre_preferences': genrePreferences,
         'is_creator': isCreator,
+        'notification_prefs': notificationPrefs,
       };
 
   Profile copyWith({
@@ -93,6 +114,7 @@ class Profile {
     String? referralCode,
     List<String>? genrePreferences,
     bool? isCreator,
+    Map<String, bool>? notificationPrefs,
   }) =>
       Profile(
         id: id,
@@ -110,6 +132,7 @@ class Profile {
         referralCode: referralCode ?? this.referralCode,
         genrePreferences: genrePreferences ?? this.genrePreferences,
         isCreator: isCreator ?? this.isCreator,
+        notificationPrefs: notificationPrefs ?? this.notificationPrefs,
       );
 
   bool get passBonusClaimableToday {

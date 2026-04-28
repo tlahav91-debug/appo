@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
   if (authHeader !== `Bearer ${serviceRoleKey}`) return json({ error: "Forbidden" }, 403);
 
   const body = await req.json().catch(() => null);
-  const { user_id, title, body: msgBody, data = {} } = body ?? {};
+  const { user_id, title, body: msgBody, data = {}, notification_type } = body ?? {};
   if (!user_id || !title || !msgBody) {
     return json({ error: "user_id, title, body are required" }, 400);
   }
@@ -131,6 +131,19 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_URL")!,
     serviceRoleKey,
   );
+
+  // Check notification preference opt-out if type is provided
+  if (notification_type) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("notification_prefs")
+      .eq("id", user_id)
+      .maybeSingle();
+
+    if (profile?.notification_prefs?.[notification_type] === false) {
+      return json({ sent: 0, reason: "opted_out" });
+    }
+  }
 
   const { data: tokens, error } = await supabase
     .from("push_tokens")
