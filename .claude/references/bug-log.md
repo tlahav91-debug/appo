@@ -102,3 +102,10 @@
 |----|-------|----------|--------|
 | BUG-055-H1 | mint-collectible SELECT-then-INSERT race condition — concurrent requests hit Postgres UNIQUE constraint returning 500 | High | ✅ Fixed — replaced with upsert ON CONFLICT (user_id,collectible_id) DO NOTHING; count used to detect already_owned |
 | BUG-055-H2 | _AlbumBanner missing from SeriesScreen — no discoverable path to album from series detail | High | ✅ Fixed — _AlbumBanner widget added; watches providers with valueOrNull fallbacks; navigates to /series/:id/album |
+
+## PRD-056 — Deep Link Incoming
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-056-M1 | DeepLinkService.init() unawaited — cold-start URI fetch races against widget lifecycle | Medium | ✅ Fixed — extracted to _initDeepLinks() async helper, properly awaited |
+| BUG-056-L1 | onAuthStateChange listener never cancelled — minor leak after dispose | Low | ✅ Fixed — stored as _authSub, cancelled in dispose() |
