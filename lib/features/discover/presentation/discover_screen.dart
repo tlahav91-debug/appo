@@ -56,6 +56,13 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   fontSize: 20,
                 ),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search, color: textCol),
+                  tooltip: 'Search',
+                  onPressed: () => context.push('/search'),
+                ),
+              ],
             ),
 
             // ── Search bar ──────────────────────────────────────────────────

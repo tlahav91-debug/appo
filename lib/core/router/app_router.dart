@@ -28,6 +28,7 @@ import '../../features/creator/presentation/creator_earnings_screen.dart';
 import '../../features/creator/presentation/creator_status_screen.dart';
 import '../../features/creator/presentation/notifications_screen.dart';
 import '../../features/creator/presentation/public_creator_profile_screen.dart';
+import '../../features/discover/presentation/search_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -141,6 +142,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications',
         builder: (_, __) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/search',
+        builder: (_, __) => const SearchScreen(),
       ),
     ],
   );
