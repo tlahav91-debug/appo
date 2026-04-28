@@ -109,3 +109,9 @@
 |----|-------|----------|--------|
 | BUG-056-M1 | DeepLinkService.init() unawaited — cold-start URI fetch races against widget lifecycle | Medium | ✅ Fixed — extracted to _initDeepLinks() async helper, properly awaited |
 | BUG-056-L1 | onAuthStateChange listener never cancelled — minor leak after dispose | Low | ✅ Fixed — stored as _authSub, cancelled in dispose() |
+
+## PRD-057 — Trending Now
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-057-M1 | "🔥 Trending" header shown during skeleton loading — should only appear with data | Medium | ✅ Fixed — header removed from loading branch; skeleton renders plain placeholders only |
