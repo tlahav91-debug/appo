@@ -103,6 +103,25 @@ class CreatorStatusScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () => context.go('/creator/edit-profile'),
+                    child: Container(
+                      height: 52,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: cyanGrad,
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Edit Profile',
+                        style: GoogleFonts.nunito(
+                          color: textCol, fontWeight: FontWeight.w800, fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),

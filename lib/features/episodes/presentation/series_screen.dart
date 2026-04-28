@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:posthog_flutter/posthog_flutter.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/share_utils.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../energy/presentation/energy_gate.dart';
 import '../../energy/application/energy_provider.dart';
@@ -137,6 +138,16 @@ class _SeriesHeroHeader extends ConsumerWidget {
                 stops: const [0.4, 1.0],
               ),
             ),
+          ),
+        ),
+        // Share button
+        Positioned(
+          top: 8,
+          right: 8,
+          child: IconButton(
+            icon: const Icon(Icons.ios_share, color: textCol),
+            tooltip: 'Share',
+            onPressed: () => shareSeries(series!.id, series!.title),
           ),
         ),
         // Metadata overlay

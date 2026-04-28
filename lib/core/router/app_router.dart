@@ -26,6 +26,7 @@ import '../../features/creator/presentation/creator_apply_screen.dart';
 import '../../features/creator/presentation/creator_analytics_screen.dart';
 import '../../features/creator/presentation/creator_earnings_screen.dart';
 import '../../features/creator/presentation/creator_status_screen.dart';
+import '../../features/creator/presentation/creator_profile_edit_screen.dart';
 import '../../features/creator/presentation/notifications_screen.dart';
 import '../../features/creator/presentation/public_creator_profile_screen.dart';
 import '../../features/discover/presentation/search_screen.dart';
@@ -46,6 +47,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     refreshListenable: _AuthStateNotifier(),
+    // Routes double as deep link handlers for appo.app/* URLs
+    // TODO(deep-link-incoming): wire app_links for cold-start handling in Sprint 12
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
@@ -133,6 +136,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/creator/status', builder: (_, __) => const CreatorStatusScreen()),
       GoRoute(path: '/creator/earnings', builder: (_, __) => const CreatorEarningsScreen()),
       GoRoute(path: '/creator/analytics', builder: (_, __) => const CreatorAnalyticsScreen()),
+      GoRoute(path: '/creator/edit-profile', builder: (_, __) => const CreatorProfileEditScreen()),
       GoRoute(
         path: '/creator/:creatorId',
         builder: (_, state) => PublicCreatorProfileScreen(

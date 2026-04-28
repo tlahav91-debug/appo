@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/share_utils.dart';
 import '../application/creator_provider.dart';
 
 class PublicCreatorProfileScreen extends ConsumerStatefulWidget {
@@ -50,6 +51,16 @@ class _PublicCreatorProfileScreenState extends ConsumerState<PublicCreatorProfil
         backgroundColor: bgDeep,
         elevation: 0,
         leading: BackButton(color: textCol),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.share_outlined, color: textCol),
+            tooltip: 'Share',
+            onPressed: () {
+              final name = profileAsync.valueOrNull?['display_name'] as String?;
+              if (name != null) shareCreator(widget.creatorId, name);
+            },
+          ),
+        ],
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: gold)),
