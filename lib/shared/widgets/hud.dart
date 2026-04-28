@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/creator/application/notifications_provider.dart';
 import '../../features/inbox/application/inbox_provider.dart';
@@ -292,9 +293,106 @@ class _HudContent extends ConsumerWidget {
                 ref.read(profileProvider.notifier).signOut();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: lava),
+              title: Text(
+                'Delete Account',
+                style: GoogleFonts.nunito(
+                  color: lava,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteAccountConfirmation(context, ref);
+              },
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+Future<void> _showDeleteAccountConfirmation(BuildContext context, WidgetRef ref) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const _DeleteAccountDialog(),
+  );
+  if (confirmed != true) return;
+  if (!context.mounted) return;
+  await ref.read(profileProvider.notifier).signOut();
+  if (context.mounted) context.go('/auth');
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _confirm() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) throw Exception('Not signed in');
+      await Supabase.instance.client.functions.invoke(
+        'delete-account',
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+        body: {},
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _error = 'Deletion failed. Please try again.'; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        'Delete Account?',
+        style: GoogleFonts.nunito(color: lava, fontWeight: FontWeight.w900),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'This permanently deletes your profile, progress, coins, gems, and all data. This cannot be undone.',
+            style: GoogleFonts.sora(color: textCol, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'If you have an active Drama Pass, cancel it in your App Store / Play Store settings before deleting.',
+            style: GoogleFonts.sora(color: textDim, fontSize: 12),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!, style: GoogleFonts.sora(color: lava, fontSize: 12)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(false),
+          child: Text('Cancel', style: GoogleFonts.nunito(color: textDim)),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _confirm,
+          child: _loading
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: lava, strokeWidth: 2))
+              : Text('Delete Account', style: GoogleFonts.nunito(color: lava, fontWeight: FontWeight.w700)),
+        ),
+      ],
     );
   }
 }
