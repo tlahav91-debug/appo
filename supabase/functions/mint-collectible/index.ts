@@ -48,28 +48,19 @@ Deno.serve(async (req: Request) => {
 
   const collectibleId = collectible.id as string;
 
-  // Check if user already owns this collectible
-  const { data: existing } = await serviceClient
-    .from("user_collectibles")
-    .select("collectible_id")
-    .eq("user_id", user.id)
-    .eq("collectible_id", collectibleId)
-    .maybeSingle();
+  // Upsert — ON CONFLICT (user_id, collectible_id) DO NOTHING
+  const { error: upsertError, count } = await serviceClient
+    .from('user_collectibles')
+    .upsert(
+      { user_id: user.id, collectible_id: collectibleId },
+      { onConflict: 'user_id,collectible_id', ignoreDuplicates: true, count: 'exact' }
+    );
 
-  if (existing) {
-    return json({ collectible_id: collectibleId, already_owned: true });
+  if (upsertError) {
+    return new Response(JSON.stringify({ error: 'Mint failed' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 
-  // Insert — idempotent via ON CONFLICT DO NOTHING
-  const { error: insertError } = await serviceClient
-    .from("user_collectibles")
-    .insert({
-      user_id: user.id,
-      collectible_id: collectibleId,
-      earned_at: new Date().toISOString(),
-    });
+  const alreadyOwned = count === 0;
 
-  if (insertError) return json({ error: insertError.message }, 500);
-
-  return json({ collectible_id: collectibleId, already_owned: false });
+  return json({ collectible_id: collectibleId, already_owned: alreadyOwned });
 });
