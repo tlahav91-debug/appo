@@ -18,6 +18,7 @@ import '../../affinity/application/affinity_provider.dart'
 import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
 import '../../creator/application/creator_provider.dart';
+import '../../collectibles/application/album_provider.dart';
 import 'episode_card.dart';
 import '../application/episode_progress_provider.dart';
 import '../application/series_rating_provider.dart';

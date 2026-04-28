@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/album_repository.dart';
+import '../data/collectible_service.dart';
 import '../domain/album.dart';
 import '../domain/collectible.dart';
 
@@ -22,3 +23,5 @@ final ownedCollectibleIdsProvider = FutureProvider<Set<String>>((ref) {
   if (userId == null) return Future.value({});
   return ref.read(albumRepositoryProvider).fetchOwnedCollectibleIds(userId);
 });
+
+final collectibleServiceProvider = Provider<CollectibleService>((ref) => CollectibleService());

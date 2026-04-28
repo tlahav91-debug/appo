@@ -14,6 +14,7 @@ import '../domain/episode.dart';
 import 'reaction_row.dart';
 import '../application/series_rating_provider.dart';
 import '../../social/application/social_provider.dart';
+import '../../collectibles/application/album_provider.dart';
 
 class EpisodeDetailScreen extends ConsumerStatefulWidget {
   final Episode episode;
@@ -51,6 +52,30 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
       widget.episode.id,
       widget.episode.seriesId,
     );
+    _mintCollectible();
+  }
+
+  Future<void> _mintCollectible() async {
+    try {
+      final service = ref.read(collectibleServiceProvider);
+      final result = await service.mintForEpisode(widget.episode.id);
+      if (!result.alreadyOwned && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🃏 Card unlocked!',
+              style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700),
+            ),
+            backgroundColor: surface,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        // Invalidate so album reflects new card immediately
+        ref.invalidate(ownedCollectibleIdsProvider);
+      }
+    } catch (_) {
+      // Mint errors are non-blocking — never interrupt the user flow
+    }
   }
 
   void _showCompletionModal() {

@@ -49,3 +49,4 @@
 | PRD-052 | Following Feed | ✅ Closed | f318c13 | Clean — Following tab with purpleGrad chip, empty state, pull-to-refresh |
 | PRD-053 | Creator Profile Editor | ✅ Closed | f7ab122 + 0f2cfd4 | QA fix: M-2 lazy _initControllers via profileAsync.whenData() |
 | PRD-054 | Share / Deep Link | ✅ Closed | f7ab122 | Clean — shareSeries/shareCreator via share_plus; deep-link TODO for Sprint 12 |
+| PRD-055 | Collectible Card Album | 🔨 In Progress | — | Approved 2026-04-28 |

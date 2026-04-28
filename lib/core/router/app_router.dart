@@ -70,6 +70,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/series/:seriesId/album',
+        builder: (_, state) => AlbumScreen(
+          seriesId: state.pathParameters['seriesId']!,
+        ),
+      ),
+      GoRoute(
         path: '/album/:seriesId',
         builder: (_, state) => AlbumScreen(
           seriesId: state.pathParameters['seriesId']!,

@@ -15,118 +15,131 @@ class CollectibleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: owned ? 1.0 : 0.35,
-      duration: const Duration(milliseconds: 300),
-      child: Container(
-        decoration: BoxDecoration(
-          color: card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: owned ? _rarityColour(collectible.rarity) : border,
-            width: owned ? 1.5 : 1,
-          ),
-          boxShadow: owned
-              ? [
-                  BoxShadow(
-                    color: _rarityColour(collectible.rarity).withOpacity(0.25),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  )
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Image
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                child: collectible.imageUrl != null
-                    ? ColorFiltered(
-                        colorFilter: owned
-                            ? const ColorFilter.mode(
-                                Colors.transparent, BlendMode.multiply)
-                            : const ColorFilter.matrix([
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0,      0,      0,      1, 0,
-                              ]),
-                        child: Image.network(
-                          collectible.imageUrl!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Container(
-                        color: cardHi,
-                        child: Icon(
-                          owned ? Icons.auto_awesome : Icons.lock_outline,
-                          color: owned
-                              ? _rarityColour(collectible.rarity)
-                              : textDim,
-                          size: 28,
-                        ),
-                      ),
-              ),
-            ),
-            // Label
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 5, 6, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    collectible.name,
-                    style: GoogleFonts.nunito(
-                      color: owned ? textCol : textDim,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  _RarityChip(rarity: collectible.rarity, owned: owned),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (!owned) {
+      return _UnownedCard();
+    }
+    return _OwnedCard(collectible: collectible);
   }
 
-  static Color _rarityColour(String rarity) => switch (rarity) {
+  static Color rarityColour(String rarity) => switch (rarity) {
         'legendary' => gold,
         'epic'      => purple,
         'rare'      => cyan,
-        _           => borderHi,
+        _           => borderHi, // common → grey
       };
 }
 
-class _RarityChip extends StatelessWidget {
-  final String rarity;
-  final bool owned;
+// ---------------------------------------------------------------------------
+// Owned card — image with rarity badge in bottom-right corner
+// ---------------------------------------------------------------------------
 
-  const _RarityChip({required this.rarity, required this.owned});
+class _OwnedCard extends StatelessWidget {
+  final Collectible collectible;
+
+  const _OwnedCard({required this.collectible});
 
   @override
   Widget build(BuildContext context) {
-    final colour = CollectibleCard._rarityColour(rarity);
+    final colour = CollectibleCard.rarityColour(collectible.rarity);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background image or purple-gradient fallback
+          collectible.imageUrl != null
+              ? Image.network(
+                  collectible.imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const _PurpleGradientPlaceholder(),
+                )
+              : const _PurpleGradientPlaceholder(),
+          // Subtle scrim at bottom so badge is legible
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 40,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black54],
+                ),
+              ),
+            ),
+          ),
+          // Rarity badge — bottom-right
+          Positioned(
+            right: 6,
+            bottom: 6,
+            child: _RarityBadge(rarity: collectible.rarity, colour: colour),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PurpleGradientPlaceholder extends StatelessWidget {
+  const _PurpleGradientPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(gradient: purpleGrad),
+    );
+  }
+}
+
+class _RarityBadge extends StatelessWidget {
+  final String rarity;
+  final Color colour;
+
+  const _RarityBadge({required this.rarity, required this.colour});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: owned ? colour.withOpacity(0.2) : surface,
+        color: colour.withOpacity(0.85),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         rarity.toUpperCase(),
         style: GoogleFonts.sora(
-          color: owned ? colour : textDim,
-          fontWeight: FontWeight.w600,
-          fontSize: 9,
+          color: bgDeep,
+          fontWeight: FontWeight.w700,
+          fontSize: 8,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Unowned card — dark surface with centred '?' in textSec colour
+// ---------------------------------------------------------------------------
+
+class _UnownedCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Center(
+        child: Text(
+          '?',
+          style: GoogleFonts.nunito(
+            color: textSec,
+            fontWeight: FontWeight.w900,
+            fontSize: 28,
+          ),
         ),
       ),
     );
