@@ -120,17 +120,21 @@ Deno.serve(async (req: Request) => {
     balance_after: newBalance,
     reason: "series_completion",
     reference_id: series_id,
+    idempotency_key: `${userId}:series_completion:${series_id}`,
   });
 
   if (ledgerErr) {
     console.error("currency_ledger insert failed:", ledgerErr);
-    // Non-fatal — coins update may still succeed
-  } else {
-    // Update profile coins cache
-    await serviceClient
-      .from("profiles")
-      .update({ coins: newBalance })
-      .eq("id", userId);
+  }
+
+  // Update profile coins — always attempted regardless of ledger outcome
+  const { error: updateErr } = await serviceClient
+    .from("profiles")
+    .update({ coins: newBalance })
+    .eq("id", userId);
+
+  if (updateErr) {
+    console.error("profiles.coins update failed:", updateErr);
   }
 
   return json({
