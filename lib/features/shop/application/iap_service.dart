@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../domain/gem_pack.dart' as domain;
 
-const _kProductIds = {'gems_80', 'gems_500', 'gems_1500'};
+const _kProductIds = {'gems_80', 'gems_500', 'gems_1500', 'drama_starter_pack'};
 
 class IAPService {
   final _iap = InAppPurchase.instance;
@@ -11,6 +12,12 @@ class IAPService {
 
   // Cached products
   List<ProductDetails> products = [];
+
+  // Called when a non-gem IAP (starter pack) resolves
+  void Function(String productId, domain.PurchaseResult result)? onNonGemPurchase;
+
+  // Last validation error — callers may surface this to UI
+  String? lastValidationError;
 
   Future<void> initialize() async {
     final available = await _iap.isAvailable();
@@ -24,17 +31,33 @@ class IAPService {
     products.sort((a, b) => a.rawPrice.compareTo(b.rawPrice));
   }
 
-  // Last validation error — callers may surface this to UI
-  String? lastValidationError;
+  ProductDetails? productForId(String id) =>
+      products.where((p) => p.id == id).firstOrNull;
 
   Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {
     for (final p in purchases) {
       if (p.status == PurchaseStatus.purchased ||
           p.status == PurchaseStatus.restored) {
-        await _validate(p);
+        if (p.productID == 'drama_starter_pack') {
+          await _grantStarterPack(p);
+        } else {
+          await _validate(p);
+        }
         await _iap.completePurchase(p);
       } else if (p.status == PurchaseStatus.error ||
                  p.status == PurchaseStatus.cancelled) {
+        if (p.productID == 'drama_starter_pack') {
+          onNonGemPurchase?.call(
+            p.productID,
+            domain.PurchaseResult(
+              status: p.status == PurchaseStatus.cancelled
+                  ? domain.PurchaseStatus.cancelled
+                  : domain.PurchaseStatus.error,
+              error: p.error?.message,
+              productId: p.productID,
+            ),
+          );
+        }
         await _iap.completePurchase(p);
       }
     }
@@ -57,6 +80,34 @@ class IAPService {
       );
     } catch (e) {
       lastValidationError = e.toString();
+    }
+  }
+
+  Future<void> _grantStarterPack(PurchaseDetails p) async {
+    try {
+      final receiptData = Platform.isIOS
+          ? p.verificationData.serverVerificationData
+          : p.verificationData.localVerificationData;
+      await Supabase.instance.client.functions.invoke(
+        'grant-starter-pack',
+        body: {
+          'platform': Platform.isIOS ? 'ios' : 'android',
+          'receipt_data': receiptData,
+          'transaction_id': p.purchaseID ?? p.productID,
+        },
+      );
+      onNonGemPurchase?.call(
+        p.productID,
+        const domain.PurchaseResult(status: domain.PurchaseStatus.success),
+      );
+    } catch (e) {
+      onNonGemPurchase?.call(
+        p.productID,
+        domain.PurchaseResult(
+          status: domain.PurchaseStatus.error,
+          error: e.toString(),
+        ),
+      );
     }
   }
 
