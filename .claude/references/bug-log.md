@@ -122,3 +122,10 @@
 |----|-------|----------|--------|
 | BUG-058-M1 | Realtime channel only subscribed to INSERT — soft-delete UPDATE events missed by other viewers | Medium | ✅ Fixed — added onPostgresChanges for UPDATE events on same filter |
 | BUG-058-L1 | Soft-delete endpoint allows re-deleting already-deleted comment (redundant DB write) | Low | ✅ Fixed — 409 returned if deleted_at already set |
+
+## PRD-059 — Series Completion Reward
+
+| ID | Title | Severity | Status |
+|----|-------|----------|--------|
+| BUG-059-H1 | profiles.coins skipped when currency_ledger insert fails — user sees reward but balance unchanged | High | ✅ Fixed — profiles.update() moved outside else block, always executed |
+| BUG-059-L1 | currency_ledger insert missing idempotency_key — no audit dedup handle | Low | ✅ Fixed — idempotency_key: `{userId}:series_completion:{series_id}` added |

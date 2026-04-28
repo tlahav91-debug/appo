@@ -53,3 +53,4 @@
 | PRD-056 | Deep Link Incoming | ✅ Closed | b1127f9 → b67f7c3 | QA fixes: M1 unawaited init() race; L1 auth listener leak in dispose() |
 | PRD-057 | Trending Now | ✅ Closed | 6342c72 → 5e9cf69 | QA fix: M1 Trending header leaked into skeleton loading state |
 | PRD-058 | Episode Comments | ✅ Closed | fd41d06 → 7573cae | QA fixes: M1 realtime UPDATE events; L1 re-delete 409 guard |
+| PRD-059 | Series Completion Reward | ✅ Closed | b6cff8c → e479e03 | QA fixes: H1 coins always credited; L1 ledger idempotency_key |
