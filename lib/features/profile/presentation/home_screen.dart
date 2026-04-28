@@ -703,40 +703,24 @@ class _TrendingRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return trendingAsync.when(
       loading: () => SliverToBoxAdapter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                '🔥 Trending',
-                style: GoogleFonts.nunito(
-                  color: textCol,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
+        child: SizedBox(
+          height: 120,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            children: List.generate(
+              3,
+              (_) => Container(
+                width: 80,
+                height: 120,
+                margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
-            SizedBox(
-              height: 120,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: List.generate(
-                  3,
-                  (_) => Container(
-                    width: 80,
-                    height: 120,
-                    margin: const EdgeInsets.only(right: 10),
-                    decoration: BoxDecoration(
-                      color: surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
       error: (_, __) =>
