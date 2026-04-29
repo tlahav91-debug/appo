@@ -184,6 +184,7 @@ final creatorSpotlightProvider = FutureProvider<CreatorSpotlight?>((ref) async {
   final data = await Supabase.instance.client
       .from('creator_spotlight')
       .select('id, display_name, bio, avatar_url, follower_count, series_count')
+      .order('follower_count', ascending: false)
       .limit(1)
       .maybeSingle();
   if (data == null) return null;
