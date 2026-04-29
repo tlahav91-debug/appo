@@ -91,7 +91,7 @@ class CreatorStatusScreen extends ConsumerWidget {
                       height: 52,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        gradient: goldGrad,
+                        gradient: purpleGrad,
                         borderRadius: BorderRadius.circular(26),
                       ),
                       alignment: Alignment.center,

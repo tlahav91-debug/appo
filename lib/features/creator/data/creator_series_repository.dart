@@ -103,12 +103,22 @@ class CreatorSeriesRepository {
     final submissionId = data['submission_id'] as String;
     final uploadUrl = data['upload_url'] as String;
 
-    // Link submission to this series (submissions_update_own_draft policy allows this)
-    await _db
-        .from('content_submissions')
-        .update({'series_id': seriesId})
-        .eq('id', submissionId)
-        .eq('status', 'draft');
+    // Link submission to this series (submissions_update_own_draft policy allows this).
+    // On failure: clean up the orphaned draft so it doesn't accumulate junk rows.
+    try {
+      await _db
+          .from('content_submissions')
+          .update({'series_id': seriesId})
+          .eq('id', submissionId)
+          .eq('status', 'draft');
+    } catch (_) {
+      await _db
+          .from('content_submissions')
+          .delete()
+          .eq('id', submissionId)
+          .eq('status', 'draft');
+      rethrow;
+    }
 
     return (uploadUrl: uploadUrl, submissionId: submissionId);
   }

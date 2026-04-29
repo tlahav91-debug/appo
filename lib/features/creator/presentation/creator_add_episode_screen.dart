@@ -26,6 +26,7 @@ class _CreatorAddEpisodeScreenState
   String? _uploadUrl;
   bool _requesting = false;
   bool _submitting = false;
+  bool _uploadConfirmed = false;
   String? _error;
 
   @override
@@ -277,14 +278,35 @@ class _CreatorAddEpisodeScreenState
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            // Upload confirmation gate — prevents submitting before video is uploaded
+            GestureDetector(
+              onTap: () => setState(() => _uploadConfirmed = !_uploadConfirmed),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: _uploadConfirmed,
+                    activeColor: cyan,
+                    onChanged: (v) =>
+                        setState(() => _uploadConfirmed = v ?? false),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'I have finished uploading the video to the TUS URL above',
+                      style: GoogleFonts.sora(color: textSec, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: _submitting ? null : _submitForReview,
+              onTap: (_submitting || !_uploadConfirmed) ? null : _submitForReview,
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  gradient: _submitting ? null : goldGrad,
-                  color: _submitting ? card : null,
+                  gradient: (_submitting || !_uploadConfirmed) ? null : goldGrad,
+                  color: (_submitting || !_uploadConfirmed) ? card : null,
                   borderRadius: BorderRadius.circular(26),
                 ),
                 alignment: Alignment.center,
