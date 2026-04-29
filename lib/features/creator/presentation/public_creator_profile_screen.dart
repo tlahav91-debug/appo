@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/utils/share_utils.dart';
 import '../application/creator_provider.dart';
+import '../../qa/application/qa_provider.dart';
+import '../../qa/domain/qa_session.dart';
 
 class PublicCreatorProfileScreen extends ConsumerStatefulWidget {
   final String creatorId;
@@ -44,6 +47,7 @@ class _PublicCreatorProfileScreenState extends ConsumerState<PublicCreatorProfil
     final profileAsync = ref.watch(publicCreatorProfileProvider(widget.creatorId));
     final seriesAsync = ref.watch(creatorSeriesProvider(widget.creatorId));
     final followAsync = ref.watch(creatorFollowStateProvider(widget.creatorId));
+    final qaAsync = ref.watch(creatorActiveQAProvider(widget.creatorId));
 
     return Scaffold(
       backgroundColor: bgDeep,
@@ -121,6 +125,11 @@ class _PublicCreatorProfileScreenState extends ConsumerState<PublicCreatorProfil
                 ),
                 const SizedBox(height: 16),
                 Text(bio, style: GoogleFonts.sora(color: textSec, fontSize: 14)),
+                // Q&A session card
+                if (qaAsync.valueOrNull != null) ...[
+                  const SizedBox(height: 16),
+                  _QACard(session: qaAsync.value!),
+                ],
                 const SizedBox(height: 24),
                 Text('Series', style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700, fontSize: 16)),
                 const SizedBox(height: 12),
@@ -180,6 +189,69 @@ class _PublicCreatorProfileScreenState extends ConsumerState<PublicCreatorProfil
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _QACard extends StatelessWidget {
+  final QASession session;
+  const _QACard({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLive = session.status == QAStatus.live;
+    return GestureDetector(
+      onTap: () => context.push('/qa/session/${session.id}'),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isLive ? lava.withAlpha(30) : surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isLive ? lava : borderHi),
+        ),
+        child: Row(
+          children: [
+            Text(isLive ? '🔴' : '📅',
+                style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLive ? 'LIVE NOW' : 'Upcoming Q&A',
+                    style: GoogleFonts.nunito(
+                      color: isLive ? lava : gold,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    session.title,
+                    style: GoogleFonts.nunito(
+                        color: textCol,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (!isLive)
+                    Text(
+                      '${session.scheduledAt.month}/'
+                      '${session.scheduledAt.day} · '
+                      '${session.scheduledAt.hour.toString().padLeft(2, '0')}:'
+                      '${session.scheduledAt.minute.toString().padLeft(2, '0')}',
+                      style: GoogleFonts.sora(
+                          color: textDim, fontSize: 11),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: textDim, size: 18),
+          ],
+        ),
       ),
     );
   }

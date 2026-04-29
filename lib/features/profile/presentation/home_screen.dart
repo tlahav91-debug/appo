@@ -15,6 +15,8 @@ import '../../mylist/application/watch_progress_provider.dart';
 import '../../mylist/domain/watch_progress.dart';
 import '../application/home_provider.dart';
 import '../application/profile_provider.dart';
+import '../../qa/application/qa_provider.dart';
+import '../../qa/domain/qa_session.dart';
 
 // ---------------------------------------------------------------------------
 // HomeScreen
@@ -75,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final inProgressAsync = ref.watch(inProgressProvider);
     final clubAsync = ref.watch(userClubProvider);
     final activeQuestsAsync = ref.watch(activeQuestsProvider);
+    final upcomingQA = ref.watch(upcomingQAProvider).valueOrNull;
 
     // Derive a single active quest (first in the list), if any.
     final activeQuest = activeQuestsAsync.valueOrNull?.firstOrNull;
@@ -166,7 +169,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ..._buildClubStrip(clubAsync),
 
                 // ----------------------------------------------------------------
-                // 4b. Trending Now Row
+                // 4b. Upcoming Q&A Banner
+                // ----------------------------------------------------------------
+                if (upcomingQA != null)
+                  SliverToBoxAdapter(
+                    child: _QABanner(session: upcomingQA),
+                  ),
+
+                // ----------------------------------------------------------------
+                // 4c. Trending Now Row
                 // ----------------------------------------------------------------
                 _TrendingRow(trendingAsync: trendingAsync),
 
@@ -926,6 +937,61 @@ class _GridSeriesCard extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QABanner extends StatelessWidget {
+  final QASession session;
+  const _QABanner({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLive = session.status == QAStatus.live;
+    final timeStr = isLive
+        ? 'LIVE NOW 🔴'
+        : '${session.scheduledAt.hour.toString().padLeft(2, '0')}:'
+            '${session.scheduledAt.minute.toString().padLeft(2, '0')}';
+
+    return GestureDetector(
+      onTap: () => context.push('/qa/session/${session.id}'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: purpleGrad,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Text('🎤', style: TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    session.title,
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    isLive ? 'Live Q&A — join now!' : 'Upcoming Q&A · $timeStr',
+                    style: GoogleFonts.sora(
+                        color: textCol.withAlpha(200), fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: textCol),
+          ],
         ),
       ),
     );

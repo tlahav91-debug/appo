@@ -31,6 +31,9 @@ import '../../features/creator/presentation/notifications_screen.dart';
 import '../../features/creator/presentation/public_creator_profile_screen.dart';
 import '../../features/discover/presentation/search_screen.dart';
 import '../../features/profile/presentation/notification_prefs_screen.dart';
+import '../../features/qa/presentation/qa_live_screen.dart';
+import '../../features/qa/presentation/qa_schedule_screen.dart';
+import '../../features/qa/presentation/qa_session_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -167,6 +170,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/search',
         builder: (_, __) => const SearchScreen(),
+      ),
+      GoRoute(
+        path: '/qa/schedule',
+        builder: (_, __) => const QAScheduleScreen(),
+      ),
+      GoRoute(
+        path: '/qa/live/:sessionId',
+        builder: (_, state) => QALiveScreen(
+          sessionId: state.pathParameters['sessionId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/qa/session/:sessionId',
+        builder: (_, state) => QASessionScreen(
+          sessionId: state.pathParameters['sessionId']!,
+        ),
       ),
     ],
   );

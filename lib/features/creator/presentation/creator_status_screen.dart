@@ -122,6 +122,25 @@ class CreatorStatusScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () => context.push('/qa/schedule'),
+                    child: Container(
+                      height: 52,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: pinkGrad,
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Schedule Q&A 🎤',
+                        style: GoogleFonts.nunito(
+                          color: textCol, fontWeight: FontWeight.w800, fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),
