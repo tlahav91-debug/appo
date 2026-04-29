@@ -122,8 +122,9 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(qaSessionDetailProvider(widget.sessionId));
     final title = sessionAsync.valueOrNull?.title ?? 'Live Q&A';
-    final isEnded = _sessionEnded ||
-        sessionAsync.valueOrNull?.status == QAStatus.ended;
+    final sessionStatus = sessionAsync.valueOrNull?.status;
+    final isEnded = _sessionEnded || sessionStatus == QAStatus.ended;
+    final isLive = sessionStatus == QAStatus.live && !_sessionEnded;
 
     return Scaffold(
       backgroundColor: bgDeep,
@@ -219,7 +220,7 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
                     ),
                   ),
           ),
-          if (!isEnded && !_hasSubmitted)
+          if (isLive && !_hasSubmitted)
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               color: surface,
