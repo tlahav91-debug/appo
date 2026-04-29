@@ -35,6 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Updated when featuredSeriesProvider data arrives; guards timer from
   // animating to out-of-bounds page when fewer than 5 series are returned.
   int _featuredCount = 1;
+  String? _selectedGenre;
 
   @override
   void initState() {
@@ -66,6 +67,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.invalidate(inProgressProvider);
     ref.invalidate(userClubProvider);
     ref.invalidate(activeQuestsProvider);
+    ref.invalidate(newFromFollowingProvider);
+    ref.invalidate(creatorSpotlightProvider);
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 
@@ -78,9 +81,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final clubAsync = ref.watch(userClubProvider);
     final activeQuestsAsync = ref.watch(activeQuestsProvider);
     final upcomingQA = ref.watch(upcomingQAProvider).valueOrNull;
+    final followingEpisodes = ref.watch(newFromFollowingProvider).valueOrNull ?? [];
+    final spotlight = ref.watch(creatorSpotlightProvider).valueOrNull;
 
     // Derive a single active quest (first in the list), if any.
     final activeQuest = activeQuestsAsync.valueOrNull?.firstOrNull;
+
+    // Derive distinct genres from loaded series for the filter chips.
+    final allGenres = (allSeriesAsync.valueOrNull ?? [])
+        .map((s) => s.genre)
+        .whereType<String>()
+        .toSet()
+        .toList()
+      ..sort();
 
     return Scaffold(
       backgroundColor: bgDeep,
@@ -164,6 +177,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ..._buildContinueWatching(inProgressAsync),
 
                 // ----------------------------------------------------------------
+                // 3b. New from Following Strip
+                // ----------------------------------------------------------------
+                if (followingEpisodes.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: _FollowingStrip(episodes: followingEpisodes),
+                  ),
+
+                // ----------------------------------------------------------------
                 // 4. Club Activity Strip
                 // ----------------------------------------------------------------
                 ..._buildClubStrip(clubAsync),
@@ -182,24 +203,89 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _TrendingRow(trendingAsync: trendingAsync),
 
                 // ----------------------------------------------------------------
-                // 5. "All Dramas" section header
+                // 4d. Creator Spotlight
+                // ----------------------------------------------------------------
+                if (spotlight != null)
+                  SliverToBoxAdapter(
+                    child: _CreatorSpotlightCard(spotlight: spotlight),
+                  ),
+
+                // ----------------------------------------------------------------
+                // 5. "All Dramas" header + Genre filter chips
                 // ----------------------------------------------------------------
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Text(
-                      'All Dramas',
-                      style: GoogleFonts.nunito(
-                        color: textCol,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Row(
+                          children: [
+                            Text(
+                              'All Dramas',
+                              style: GoogleFonts.nunito(
+                                color: textCol,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_selectedGenre != null)
+                              GestureDetector(
+                                onTap: () =>
+                                    setState(() => _selectedGenre = null),
+                                child: Text(
+                                  'Clear',
+                                  style: GoogleFonts.sora(
+                                      color: pink, fontSize: 12),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
+                      if (allGenres.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 34,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: allGenres.length,
+                            itemBuilder: (context, i) {
+                              final genre = allGenres[i];
+                              final selected = _selectedGenre == genre;
+                              return GestureDetector(
+                                onTap: () => setState(() =>
+                                    _selectedGenre = selected ? null : genre),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    gradient: selected ? pinkFull : null,
+                                    color: selected ? null : surface,
+                                    borderRadius: BorderRadius.circular(17),
+                                  ),
+                                  child: Text(
+                                    genre,
+                                    style: GoogleFonts.sora(
+                                      color:
+                                          selected ? textCol : textSec,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
 
                 // ----------------------------------------------------------------
-                // 5b. Drama Grid
+                // 5b. Drama Grid (filtered by genre chip when selected)
                 // ----------------------------------------------------------------
                 allSeriesAsync.when(
                   loading: () => const SliverToBoxAdapter(
@@ -225,20 +311,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   data: (series) {
-                    final prefs = ref
-                            .watch(profileProvider)
-                            .valueOrNull
-                            ?.genrePreferences ??
-                        [];
-                    if (prefs.isNotEmpty) {
-                      series = List<HomeSeries>.from(series);
-                      series.sort((a, b) {
-                        final aMatch =
-                            prefs.contains(a.genre) ? 0 : 1;
-                        final bMatch =
-                            prefs.contains(b.genre) ? 0 : 1;
-                        return aMatch.compareTo(bMatch);
-                      });
+                    var displayed = List<HomeSeries>.from(series);
+                    if (_selectedGenre != null) {
+                      displayed = displayed
+                          .where((s) => s.genre == _selectedGenre)
+                          .toList();
+                    } else {
+                      final prefs = ref
+                              .watch(profileProvider)
+                              .valueOrNull
+                              ?.genrePreferences ??
+                          [];
+                      if (prefs.isNotEmpty) {
+                        displayed.sort((a, b) {
+                          final aMatch = prefs.contains(a.genre) ? 0 : 1;
+                          final bMatch = prefs.contains(b.genre) ? 0 : 1;
+                          return aMatch.compareTo(bMatch);
+                        });
+                      }
+                    }
+                    if (displayed.isEmpty) {
+                      return SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Center(
+                            child: Text(
+                              'No dramas in this genre yet.',
+                              style: GoogleFonts.sora(
+                                  color: textDim, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      );
                     }
                     return SliverPadding(
                       padding: const EdgeInsets.all(16),
@@ -252,8 +356,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) =>
-                              _GridSeriesCard(series: series[index]),
-                          childCount: series.length,
+                              _GridSeriesCard(series: displayed[index]),
+                          childCount: displayed.length,
                         ),
                       ),
                     );
@@ -653,10 +757,6 @@ class _ContinueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shortId = wp.seriesId.length >= 8
-        ? wp.seriesId.substring(wp.seriesId.length - 8)
-        : wp.seriesId;
-
     return GestureDetector(
       onTap: () => context.push('/series/${wp.seriesId}'),
       child: Container(
@@ -664,37 +764,55 @@ class _ContinueCard extends StatelessWidget {
         height: 100,
         margin: const EdgeInsets.only(right: 10),
         decoration: BoxDecoration(
-          color: card,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  shortId,
-                  style: GoogleFonts.sora(
-                    color: textDim,
-                    fontSize: 10,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (wp.coverUrl != null && wp.coverUrl!.isNotEmpty)
+                Image.network(
+                  wp.coverUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: const BoxDecoration(gradient: purpleGrad),
                   ),
-                  textAlign: TextAlign.center,
+                )
+              else
+                Container(decoration: const BoxDecoration(gradient: purpleGrad)),
+              if (wp.seriesTitle != null)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 8,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      wp.seriesTitle!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.nunito(
+                        color: textCol,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: LinearProgressIndicator(
+                  value: wp.progressPct / 100,
+                  color: pink,
+                  backgroundColor: Colors.black38,
+                  minHeight: 3,
                 ),
               ),
-            ),
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(10),
-                bottomRight: Radius.circular(10),
-              ),
-              child: LinearProgressIndicator(
-                value: wp.progressPct / 100,
-                color: pink,
-                backgroundColor: border,
-                minHeight: 4,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -937,6 +1055,231 @@ class _GridSeriesCard extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// New from Following Strip
+// ---------------------------------------------------------------------------
+
+class _FollowingStrip extends StatelessWidget {
+  final List<FollowingEpisode> episodes;
+  const _FollowingStrip({required this.episodes});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Text(
+                '✨ New from Following',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => context.push('/search'),
+                child: Text(
+                  'See All',
+                  style: GoogleFonts.sora(color: pink, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 170,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: episodes.length,
+            itemBuilder: (context, index) =>
+                _FollowingCard(episode: episodes[index]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FollowingCard extends StatelessWidget {
+  final FollowingEpisode episode;
+  const _FollowingCard({required this.episode});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/series/${episode.seriesId}'),
+      child: Container(
+        width: 130,
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (episode.coverUrl != null && episode.coverUrl!.isNotEmpty)
+                Image.network(
+                  episode.coverUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: const BoxDecoration(gradient: purpleGrad),
+                  ),
+                )
+              else
+                Container(decoration: const BoxDecoration(gradient: purpleGrad)),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 70,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black.withOpacity(0.88)],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      episode.seriesTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.sora(color: textSec, fontSize: 10),
+                    ),
+                    Text(
+                      'Ep ${episode.episodeNumber}',
+                      maxLines: 1,
+                      style: GoogleFonts.nunito(
+                        color: textCol,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      'by ${episode.creatorName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.sora(color: pink, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Creator Spotlight Card
+// ---------------------------------------------------------------------------
+
+class _CreatorSpotlightCard extends StatelessWidget {
+  final CreatorSpotlight spotlight;
+  const _CreatorSpotlightCard({required this.spotlight});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/creator/${spotlight.id}'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: purple,
+                  backgroundImage: spotlight.avatarUrl != null &&
+                          spotlight.avatarUrl!.isNotEmpty
+                      ? NetworkImage(spotlight.avatarUrl!)
+                      : null,
+                  child: spotlight.avatarUrl == null ||
+                          spotlight.avatarUrl!.isEmpty
+                      ? Text(
+                          spotlight.displayName.isNotEmpty
+                              ? spotlight.displayName[0].toUpperCase()
+                              : '?',
+                          style: GoogleFonts.nunito(
+                            color: textCol,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '⭐ Creator Spotlight',
+                        style: GoogleFonts.sora(color: gold, fontSize: 11),
+                      ),
+                      Text(
+                        spotlight.displayName,
+                        style: GoogleFonts.nunito(
+                          color: textCol,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '${spotlight.followerCount} followers · '
+                        '${spotlight.seriesCount} series',
+                        style: GoogleFonts.sora(color: textSec, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: textDim, size: 20),
+              ],
+            ),
+            if (spotlight.bio != null && spotlight.bio!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                spotlight.bio!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.sora(color: textSec, fontSize: 12),
+              ),
+            ],
+          ],
         ),
       ),
     );
