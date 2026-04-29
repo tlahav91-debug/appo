@@ -60,3 +60,4 @@
 | PRD-063 | Account Deletion | ✅ Closed | 3b10919 → ed61d10 | QA fix: M1 PopScope prevents back-button dismiss during deletion |
 | PRD-064 | Social Sharing & Invite Deep Links v2 | ✅ Closed | c9a035c → d761369 | QA fix: H1 try-catch in _maybePromptJoin prevents silent join prompt failure |
 | PRD-065 | Creator Live Q&A | ✅ Closed | 1bdad79 → 78fdf47 | QA fix: C1 atomic compare-and-swap in start-qa-session prevents double-start race condition |
+| PRD-066 | Fan Q&A Submission | ✅ Closed | beba8fd → fb57744 | QA fix: M1 question input gated on isLive (not !isEnded) — suppressed during scheduled/ended sessions |
