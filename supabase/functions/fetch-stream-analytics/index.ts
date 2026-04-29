@@ -36,17 +36,21 @@ serve(async (req) => {
   }
 
   try {
-    const params = new URLSearchParams({
-      "metrics[]": "totalImpressions,viewerPercentage",
-      "filters[0][key]": "videoUID",
-      "filters[0][operator]": "==",
-      "filters[0][value]": cf_stream_id,
-      ...(date_from ? { since: date_from } : {}),
-      ...(date_to ? { until: date_to } : {}),
-    });
+    // Build query string manually — URLSearchParams percent-encodes brackets
+    // which CF's API does not accept. Use repeated metrics[] params.
+    const qsParts = [
+      "metrics[]=totalImpressions",
+      "metrics[]=viewerPercentage",
+      "filters[0][key]=videoUID",
+      "filters[0][operator]==",
+      `filters[0][value]=${encodeURIComponent(cf_stream_id)}`,
+    ];
+    if (date_from) qsParts.push(`since=${date_from}`);
+    if (date_to) qsParts.push(`until=${date_to}`);
+    const qs = qsParts.join("&");
 
     const cfRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/analytics/views?${params}`,
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/analytics/views?${qs}`,
       { headers: { Authorization: `Bearer ${apiToken}` } },
     );
 

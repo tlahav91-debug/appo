@@ -36,10 +36,9 @@ serve(async (req) => {
   const periodStr = periodStart.toISOString().substring(0, 10);
 
   const SCROLLS_PER_10_STREAMS = 1;
-  let tallied = 0;
+  const BATCH_SIZE = 20; // concurrent invocations per batch to avoid timeout
 
-  for (const s of submissions as Array<Record<string, unknown>>) {
-    // Fetch real play counts from CF Stream via fetch-stream-analytics
+  const processSubmission = async (s: Record<string, unknown>) => {
     const fnRes = await serviceClient.functions.invoke("fetch-stream-analytics", {
       body: {
         cf_stream_id: s.cf_stream_id ?? null,
@@ -57,7 +56,6 @@ serve(async (req) => {
     const avgCompletion = streamData.avg_completion_pct;
     const revenueScrolls = Math.floor(streamCount / 10) * SCROLLS_PER_10_STREAMS;
 
-    // Upsert daily analytics snapshot
     await serviceClient.from("creator_episode_analytics").upsert(
       {
         creator_id: s.creator_id,
@@ -70,7 +68,6 @@ serve(async (req) => {
       { onConflict: "submission_id,date", ignoreDuplicates: false },
     );
 
-    // Upsert monthly earnings rollup
     await serviceClient.from("creator_earnings").upsert(
       {
         creator_id: s.creator_id,
@@ -83,9 +80,13 @@ serve(async (req) => {
       },
       { onConflict: "submission_id,period", ignoreDuplicates: false },
     );
+  };
 
-    tallied++;
+  // Process in concurrent batches — 20 parallel invocations × ~300ms ≈ 8s for 500 submissions
+  const all = submissions as Array<Record<string, unknown>>;
+  for (let i = 0; i < all.length; i += BATCH_SIZE) {
+    await Promise.all(all.slice(i, i + BATCH_SIZE).map(processSubmission));
   }
 
-  return json({ tallied });
+  return json({ tallied: all.length });
 });

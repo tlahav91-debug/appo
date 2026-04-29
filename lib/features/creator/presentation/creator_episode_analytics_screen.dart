@@ -279,7 +279,14 @@ class _AnalyticsBody extends StatelessWidget {
         child: Text('✓ Above platform average completion (55%)',
             style: GoogleFonts.sora(color: green, fontSize: 12)),
       ));
-    } else if (pct < 40 && pct > 0) {
+    } else if (pct == 0.0 && analytics.isNotEmpty) {
+      insights.add(Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+            '⚠ No completions recorded — check your video is processing correctly',
+            style: GoogleFonts.sora(color: gold, fontSize: 12)),
+      ));
+    } else if (pct < 40) {
       insights.add(Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text(
