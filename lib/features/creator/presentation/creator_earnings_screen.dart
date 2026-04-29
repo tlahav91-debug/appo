@@ -142,8 +142,8 @@ class _CreatorEarningsScreenState extends ConsumerState<CreatorEarningsScreen> {
 
             // Request Payout button
             summaryAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              loading: () => _payoutButtonShell(0, enabled: false),
+              error: (_, __) => _payoutButtonShell(0, enabled: false),
               data: (summary) {
                 final balance = summary['total_scrolls'] ?? 0;
                 final canPayout = balance >= 500 && !_requesting;
@@ -374,6 +374,21 @@ class _CreatorEarningsScreenState extends ConsumerState<CreatorEarningsScreen> {
         ),
         child: const Center(
             child: CircularProgressIndicator(color: gold, strokeWidth: 2)),
+      );
+
+  Widget _payoutButtonShell(int balance, {required bool enabled}) =>
+      Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(26),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'Request Payout (min 500 scrolls)',
+          style: GoogleFonts.nunito(
+              color: textDim, fontWeight: FontWeight.w800, fontSize: 15),
+        ),
       );
 }
 
