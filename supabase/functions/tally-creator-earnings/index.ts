@@ -20,41 +20,72 @@ serve(async (req) => {
     serviceKey,
   );
 
-  // Fetch all approved submissions that have a series_id
+  // Fetch all approved submissions with a series_id
   const { data: submissions, error: fetchErr } = await serviceClient
     .from("content_submissions")
-    .select("id, creator_id, series_id, episode_number")
+    .select("id, creator_id, series_id, cf_stream_id")
     .eq("status", "approved")
     .not("series_id", "is", null);
 
   if (fetchErr) return json({ error: "Failed to fetch submissions" }, 500);
   if (!submissions?.length) return json({ tallied: 0 });
 
-  const period = new Date();
-  period.setDate(1);
-  const periodStr = period.toISOString().substring(0, 10);
+  const now = new Date();
+  const todayStr = now.toISOString().substring(0, 10);
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const periodStr = periodStart.toISOString().substring(0, 10);
 
   const SCROLLS_PER_10_STREAMS = 1;
+  let tallied = 0;
 
-  const upserts = submissions.map((s: Record<string, unknown>) => {
-    // Placeholder stream count — replace with Cloudflare Stream API in PRD-069
-    const streamCount = Math.floor(Math.random() * 500) + 10;
-    const revenueScrolls = Math.floor(streamCount / 10) * SCROLLS_PER_10_STREAMS;
-    return {
-      creator_id: s.creator_id,
-      series_id: s.series_id,
-      submission_id: s.id,
-      period: periodStr,
-      stream_count: streamCount,
-      revenue_scrolls: revenueScrolls,
+  for (const s of submissions as Array<Record<string, unknown>>) {
+    // Fetch real play counts from CF Stream via fetch-stream-analytics
+    const fnRes = await serviceClient.functions.invoke("fetch-stream-analytics", {
+      body: {
+        cf_stream_id: s.cf_stream_id ?? null,
+        date_from: periodStr,
+        date_to: todayStr,
+      },
+    });
+
+    const streamData = (fnRes.data ?? { view_count: 0, avg_completion_pct: 0 }) as {
+      view_count: number;
+      avg_completion_pct: number;
     };
-  });
 
-  const { error: upsertErr } = await serviceClient
-    .from("creator_earnings")
-    .upsert(upserts, { onConflict: "submission_id,period", ignoreDuplicates: false });
+    const streamCount = streamData.view_count;
+    const avgCompletion = streamData.avg_completion_pct;
+    const revenueScrolls = Math.floor(streamCount / 10) * SCROLLS_PER_10_STREAMS;
 
-  if (upsertErr) return json({ error: "Upsert failed: " + upsertErr.message }, 500);
+    // Upsert daily analytics snapshot
+    await serviceClient.from("creator_episode_analytics").upsert(
+      {
+        creator_id: s.creator_id,
+        submission_id: s.id,
+        date: todayStr,
+        view_count: streamCount,
+        avg_completion_pct: avgCompletion,
+        revenue_scrolls: revenueScrolls,
+      },
+      { onConflict: "submission_id,date", ignoreDuplicates: false },
+    );
 
-  return json({ tallied: upserts.length });
+    // Upsert monthly earnings rollup
+    await serviceClient.from("creator_earnings").upsert(
+      {
+        creator_id: s.creator_id,
+        series_id: s.series_id,
+        submission_id: s.id,
+        period: periodStr,
+        stream_count: streamCount,
+        revenue_scrolls: revenueScrolls,
+        avg_completion_pct: avgCompletion,
+      },
+      { onConflict: "submission_id,period", ignoreDuplicates: false },
+    );
+
+    tallied++;
+  }
+
+  return json({ tallied });
 });

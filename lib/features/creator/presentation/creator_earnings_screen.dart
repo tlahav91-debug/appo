@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../application/creator_earnings_provider.dart';
@@ -311,45 +312,57 @@ class _CreatorEarningsScreenState extends ConsumerState<CreatorEarningsScreen> {
                               final streams = ep['stream_count'] as int? ?? 0;
                               final scrolls =
                                   ep['revenue_scrolls'] as int? ?? 0;
-                              return Container(
-                                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    top: BorderSide(color: border),
+                              final subId =
+                                  ep['submission_id'] as String? ?? '';
+                              return GestureDetector(
+                                onTap: subId.isNotEmpty
+                                    ? () => context.push(
+                                        '/creator/analytics/episode/$subId')
+                                    : null,
+                                child: Container(
+                                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      top: BorderSide(color: border),
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        color: card,
-                                        borderRadius: BorderRadius.circular(6),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: BoxDecoration(
+                                          color: card,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text('E$epNum',
+                                            style: GoogleFonts.sora(
+                                                color: textCol,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 9)),
                                       ),
-                                      alignment: Alignment.center,
-                                      child: Text('E$epNum',
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(epTitle,
+                                            style: GoogleFonts.sora(
+                                                color: textCol, fontSize: 12)),
+                                      ),
+                                      Text('$streams',
                                           style: GoogleFonts.sora(
-                                              color: textCol,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 9)),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(epTitle,
+                                              color: textDim, fontSize: 11)),
+                                      const SizedBox(width: 8),
+                                      Text('$scrolls',
                                           style: GoogleFonts.sora(
-                                              color: textCol, fontSize: 12)),
-                                    ),
-                                    Text('$streams',
-                                        style: GoogleFonts.sora(
-                                            color: textDim, fontSize: 11)),
-                                    const SizedBox(width: 8),
-                                    Text('$scrolls',
-                                        style: GoogleFonts.sora(
-                                            color: gold,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600)),
-                                  ],
+                                              color: gold,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600)),
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.bar_chart_outlined,
+                                          color: textDim, size: 12),
+                                    ],
+                                  ),
                                 ),
                               );
                             }),

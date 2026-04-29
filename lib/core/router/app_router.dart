@@ -31,6 +31,7 @@ import '../../features/creator/presentation/creator_series_list_screen.dart';
 import '../../features/creator/presentation/creator_series_form_screen.dart';
 import '../../features/creator/presentation/creator_series_detail_screen.dart';
 import '../../features/creator/presentation/creator_add_episode_screen.dart';
+import '../../features/creator/presentation/creator_episode_analytics_screen.dart';
 import '../../features/creator/presentation/notifications_screen.dart';
 import '../../features/creator/presentation/public_creator_profile_screen.dart';
 import '../../features/discover/presentation/search_screen.dart';
@@ -170,6 +171,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/creator/series/:seriesId',
         builder: (_, state) => CreatorSeriesDetailScreen(seriesId: state.pathParameters['seriesId']!),
+      ),
+      GoRoute(
+        path: '/creator/analytics/episode/:submissionId',
+        builder: (_, state) => CreatorEpisodeAnalyticsScreen(
+          submissionId: state.pathParameters['submissionId']!,
+        ),
       ),
       GoRoute(
         path: '/creator/:creatorId',

@@ -127,45 +127,54 @@ class _CreatorSeriesDetailScreenState
                     final epNum = sub['episode_number'] as int? ?? 0;
                     final epTitle = sub['title'] as String? ?? '';
                     final status = sub['status'] as String? ?? 'draft';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: card,
-                              borderRadius: BorderRadius.circular(6),
+                    final subId = sub['id'] as String? ?? '';
+                    return GestureDetector(
+                      onTap: subId.isNotEmpty
+                          ? () => context.push(
+                              '/creator/analytics/episode/$subId')
+                          : null,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: card,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'E$epNum',
+                                style: GoogleFonts.sora(
+                                    color: textCol,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11),
+                              ),
                             ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              'E$epNum',
-                              style: GoogleFonts.sora(
-                                  color: textCol,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 11),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(epTitle,
+                                      style: GoogleFonts.sora(
+                                          color: textCol, fontSize: 13)),
+                                  const SizedBox(height: 4),
+                                  _StatusBadge(status: status),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(epTitle,
-                                    style: GoogleFonts.sora(
-                                        color: textCol, fontSize: 13)),
-                                const SizedBox(height: 4),
-                                _StatusBadge(status: status),
-                              ],
-                            ),
-                          ),
-                        ],
+                            const Icon(Icons.bar_chart_outlined,
+                                color: textDim, size: 14),
+                          ],
+                        ),
                       ),
                     );
                   }).toList(),
