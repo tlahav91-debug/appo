@@ -48,44 +48,47 @@ class _ReactionBar extends StatelessWidget {
       children: [
         Text('Reactions', style: GoogleFonts.nunito(color: textDim, fontWeight: FontWeight.w700, fontSize: 12)),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: kReactions.map((emoji) {
-            final count = state.counts[emoji] ?? 0;
-            final isSelected = state.myReaction == emoji;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => onReact(emoji),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? pink.withOpacity(0.2) : surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isSelected ? pink : border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(emoji, style: const TextStyle(fontSize: 16)),
-                      if (count > 0) ...[
-                        const SizedBox(width: 4),
-                        Text(
-                          '$count',
-                          style: GoogleFonts.nunito(
-                            color: isSelected ? pink : textDim,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: kReactions.map((emoji) {
+              final count = state.counts[emoji] ?? 0;
+              final isSelected = state.myReaction == emoji;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () => onReact(emoji),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected ? pink.withOpacity(0.2) : surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: isSelected ? pink : border),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(emoji, style: const TextStyle(fontSize: 18)),
+                        if (count > 0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '$count',
+                            style: GoogleFonts.nunito(
+                              color: isSelected ? pink : textDim,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );

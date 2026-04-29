@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const kReactions = ['🔥', '❤️', '😱', '😢', '👏'];
+const kReactions = ['🔥', '❤️', '😱', '😢', '👏', '😂', '🤯', '💔', '👀', '😍', '💜', '⚡'];
 
 class EpisodeReactionState {
   final Map<String, int> counts;   // emoji → count
