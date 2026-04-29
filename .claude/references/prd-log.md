@@ -58,3 +58,4 @@
 | PRD-061 | Drama Pass IAP Wire-Up | ✅ Closed | 5b7a218 | Clean — activate-drama-pass Edge Fn, onPassPurchase callback, restoreAndCheck with 10s timeout |
 | PRD-062 | Notification Preferences | ✅ Closed | 737deba → e09b2b2 | QA fix: L1 getAccessToken moved after opt-out check |
 | PRD-063 | Account Deletion | ✅ Closed | 3b10919 → ed61d10 | QA fix: M1 PopScope prevents back-button dismiss during deletion |
+| PRD-064 | Social Sharing & Invite Deep Links v2 | ✅ Closed | c9a035c → d761369 | QA fix: H1 try-catch in _maybePromptJoin prevents silent join prompt failure |
