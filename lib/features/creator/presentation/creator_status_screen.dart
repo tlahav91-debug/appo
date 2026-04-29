@@ -67,6 +67,25 @@ class CreatorStatusScreen extends ConsumerWidget {
                 if (status == 'approved') ...[
                   const SizedBox(height: 24),
                   GestureDetector(
+                    onTap: () => context.push('/creator/series'),
+                    child: Container(
+                      height: 52,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: goldGrad,
+                        borderRadius: BorderRadius.circular(26),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'My Studio 🎬',
+                        style: GoogleFonts.nunito(
+                          color: textCol, fontWeight: FontWeight.w800, fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
                     onTap: () => context.go('/creator/earnings'),
                     child: Container(
                       height: 52,

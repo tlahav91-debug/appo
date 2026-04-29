@@ -27,6 +27,10 @@ import '../../features/creator/presentation/creator_analytics_screen.dart';
 import '../../features/creator/presentation/creator_earnings_screen.dart';
 import '../../features/creator/presentation/creator_status_screen.dart';
 import '../../features/creator/presentation/creator_profile_edit_screen.dart';
+import '../../features/creator/presentation/creator_series_list_screen.dart';
+import '../../features/creator/presentation/creator_series_form_screen.dart';
+import '../../features/creator/presentation/creator_series_detail_screen.dart';
+import '../../features/creator/presentation/creator_add_episode_screen.dart';
 import '../../features/creator/presentation/notifications_screen.dart';
 import '../../features/creator/presentation/public_creator_profile_screen.dart';
 import '../../features/discover/presentation/search_screen.dart';
@@ -153,6 +157,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/creator/earnings', builder: (_, __) => const CreatorEarningsScreen()),
       GoRoute(path: '/creator/analytics', builder: (_, __) => const CreatorAnalyticsScreen()),
       GoRoute(path: '/creator/edit-profile', builder: (_, __) => const CreatorProfileEditScreen()),
+      GoRoute(path: '/creator/series', builder: (_, __) => const CreatorSeriesListScreen()),
+      GoRoute(path: '/creator/series/new', builder: (_, __) => const CreatorSeriesFormScreen()),
+      GoRoute(
+        path: '/creator/series/:seriesId/edit',
+        builder: (_, state) => CreatorSeriesFormScreen(seriesId: state.pathParameters['seriesId']),
+      ),
+      GoRoute(
+        path: '/creator/series/:seriesId/episode/new',
+        builder: (_, state) => CreatorAddEpisodeScreen(seriesId: state.pathParameters['seriesId']!),
+      ),
+      GoRoute(
+        path: '/creator/series/:seriesId',
+        builder: (_, state) => CreatorSeriesDetailScreen(seriesId: state.pathParameters['seriesId']!),
+      ),
       GoRoute(
         path: '/creator/:creatorId',
         builder: (_, state) => PublicCreatorProfileScreen(
