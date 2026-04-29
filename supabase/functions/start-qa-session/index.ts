@@ -49,11 +49,17 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Too early — can only start within 10 minutes of scheduled time" }, 422);
   }
 
-  const { error: updateErr } = await serviceClient
+  // Atomic compare-and-swap: only updates if status is still 'scheduled'.
+  // Prevents double-start when two clients race on the same session.
+  const { data: updated, error: updateErr } = await serviceClient
     .from("creator_qa_sessions")
     .update({ status: "live" })
-    .eq("id", session_id);
+    .eq("id", session_id)
+    .eq("status", "scheduled")
+    .select("id")
+    .maybeSingle();
   if (updateErr) return json({ error: "Failed to start session" }, 500);
+  if (!updated) return json({ error: "Session already started" }, 409);
 
   const { data: messages, error: msgErr } = await serviceClient
     .from("creator_qa_messages")
