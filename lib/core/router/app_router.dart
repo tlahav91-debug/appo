@@ -112,6 +112,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const ClubSearchScreen(),
       ),
       GoRoute(
+        path: '/club/:clubId/join',
+        builder: (_, state) => ClubScreen(
+          clubId: state.pathParameters['clubId']!,
+          autoJoin: true,
+        ),
+      ),
+      GoRoute(
         path: '/club/:clubId',
         builder: (_, state) => ClubScreen(
           clubId: state.pathParameters['clubId']!,

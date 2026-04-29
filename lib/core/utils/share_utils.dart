@@ -15,3 +15,18 @@ Future<void> shareCreator(String creatorId, String displayName) async {
     subject: displayName,
   );
 }
+
+Future<void> shareEpisode(
+    String seriesId, String episodeId, String title) async {
+  await Share.share(
+    'Watch "$title" on Appo! $_appBaseUrl/series/$seriesId/episode/$episodeId',
+    subject: title,
+  );
+}
+
+Future<void> shareClub(String clubId, String clubName) async {
+  await Share.share(
+    'Join me in "$clubName" on Appo! $_appBaseUrl/clubs/$clubId/join',
+    subject: 'Join $clubName on Appo',
+  );
+}

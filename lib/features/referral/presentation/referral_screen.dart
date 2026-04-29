@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/analytics/analytics_provider.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../features/profile/application/profile_provider.dart';
 import '../application/referral_provider.dart';
@@ -146,10 +147,10 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () {
-                        Share.shareUri(
-                          Uri.parse('https://dramago.app/invite?code=$code'),
-                          // ignore: deprecated_member_use
-                          subject: 'Join me on DramaGo!',
+                        ref.read(analyticsProvider).capture('referral_share_tapped');
+                        Share.share(
+                          'Use my code $code to join Appo and earn 100 🪙!\nhttps://appo.app/ref/$code',
+                          subject: 'Join me on Appo!',
                         );
                       },
                       child: Padding(

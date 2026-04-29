@@ -1,26 +1,140 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/share_utils.dart';
 import '../application/club_provider.dart';
 import '../domain/club_member.dart';
 import '../domain/watch_club.dart';
 
-class ClubScreen extends ConsumerWidget {
+class ClubScreen extends ConsumerStatefulWidget {
   final String clubId;
+  final bool autoJoin;
 
-  const ClubScreen({super.key, required this.clubId});
+  const ClubScreen({super.key, required this.clubId, this.autoJoin = false});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ClubScreen> createState() => _ClubScreenState();
+}
+
+class _ClubScreenState extends ConsumerState<ClubScreen> {
+  bool _joinPromptShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoJoin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybePromptJoin());
+    }
+  }
+
+  Future<void> _maybePromptJoin() async {
+    if (_joinPromptShown || !mounted) return;
+    _joinPromptShown = true;
+
+    final currentClub = await ref.read(userClubProvider.future);
+    if (!mounted) return;
+    if (currentClub?.id == widget.clubId) return;
+
+    final targetClub =
+        await ref.read(clubRepositoryProvider).fetchClub(widget.clubId);
+    if (!mounted) return;
+
+    final clubName = targetClub?.name ?? 'this club';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: surface,
+        title: Text('Join Club?',
+            style: GoogleFonts.nunito(
+                color: textCol, fontWeight: FontWeight.w800)),
+        content: Text(
+          currentClub != null
+              ? 'Leave "${currentClub.name}" and join "$clubName"?'
+              : 'Join "$clubName"?',
+          style: GoogleFonts.sora(color: textSec, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: GoogleFonts.sora(color: textDim)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Join',
+                style: GoogleFonts.sora(
+                    color: cyan, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ref.read(clubActionProvider.notifier).join(widget.clubId);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString(), style: GoogleFonts.sora(color: textCol)),
+            backgroundColor: surface,
+          ));
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmLeave(BuildContext context, WatchClub club) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: surface,
+        title: Text('Leave Club?',
+            style: GoogleFonts.nunito(
+                color: textCol, fontWeight: FontWeight.w800)),
+        content: Text(
+          club.ownerId == Supabase.instance.client.auth.currentUser?.id
+              ? 'You are the owner. Ownership will transfer to the next member.'
+              : 'You will lose your spot in "${club.name}".',
+          style: GoogleFonts.sora(color: textSec, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: GoogleFonts.sora(color: textDim)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Leave',
+                style: GoogleFonts.sora(
+                    color: pink, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(clubActionProvider.notifier).leave(widget.clubId);
+        if (context.mounted) Navigator.pop(context);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString(),
+                style: GoogleFonts.sora(color: textCol)),
+            backgroundColor: surface,
+          ));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userClubAsync = ref.watch(userClubProvider);
-    final leaderboardAsync = ref.watch(clubLeaderboardProvider(clubId));
+    final leaderboardAsync = ref.watch(clubLeaderboardProvider(widget.clubId));
     final actionAsync = ref.watch(clubActionProvider);
     final myId = Supabase.instance.client.auth.currentUser?.id;
 
-    // Club data — prefer from userClubProvider (has ownerId), fall back to leaderboard context
     final club = userClubAsync.valueOrNull;
 
     return Scaffold(
@@ -36,15 +150,8 @@ class ClubScreen extends ConsumerWidget {
               if (club != null)
                 IconButton(
                   icon: const Icon(Icons.share_outlined, color: textSec),
-                  tooltip: 'Copy invite code',
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: club.id));
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('Club ID copied!',
-                          style: GoogleFonts.sora(color: textCol)),
-                      backgroundColor: surface,
-                    ));
-                  },
+                  tooltip: 'Invite friends',
+                  onPressed: () => shareClub(club.id, club.name),
                 ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -102,7 +209,6 @@ class ClubScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // Week label
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -116,7 +222,6 @@ class ClubScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // Leaderboard
           leaderboardAsync.when(
             loading: () => const SliverToBoxAdapter(
               child: Padding(
@@ -144,7 +249,6 @@ class ClubScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // Leave button
           if (club != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -152,7 +256,7 @@ class ClubScreen extends ConsumerWidget {
                 child: TextButton(
                   onPressed: actionAsync.isLoading
                       ? null
-                      : () => _confirmLeave(context, ref, club),
+                      : () => _confirmLeave(context, club),
                   child: Text(
                     'Leave Club',
                     style: GoogleFonts.sora(
@@ -164,51 +268,6 @@ class ClubScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _confirmLeave(
-      BuildContext context, WidgetRef ref, WatchClub club) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: surface,
-        title: Text('Leave Club?',
-            style: GoogleFonts.nunito(
-                color: textCol, fontWeight: FontWeight.w800)),
-        content: Text(
-          club.ownerId == Supabase.instance.client.auth.currentUser?.id
-              ? 'You are the owner. Ownership will transfer to the next member.'
-              : 'You will lose your spot in "${club.name}".',
-          style: GoogleFonts.sora(color: textSec, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: GoogleFonts.sora(color: textDim)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Leave',
-                style: GoogleFonts.sora(
-                    color: pink, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && context.mounted) {
-      try {
-        await ref.read(clubActionProvider.notifier).leave(clubId);
-        if (context.mounted) Navigator.pop(context);
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString(),
-                style: GoogleFonts.sora(color: textCol)),
-            backgroundColor: surface,
-          ));
-        }
-      }
-    }
   }
 }
 
@@ -240,7 +299,8 @@ class _MemberRow extends StatelessWidget {
           SizedBox(
             width: 32,
             child: isTop3
-                ? Text(medal, style: const TextStyle(fontSize: 18),
+                ? Text(medal,
+                    style: const TextStyle(fontSize: 18),
                     textAlign: TextAlign.center)
                 : Text('#$position',
                     style: GoogleFonts.nunito(
@@ -294,7 +354,8 @@ class _MemberRow extends StatelessWidget {
                     ),
                     child: Text('Owner',
                         style: GoogleFonts.sora(
-                            color: gold, fontSize: 9,
+                            color: gold,
+                            fontSize: 9,
                             fontWeight: FontWeight.w600)),
                   ),
                 ],

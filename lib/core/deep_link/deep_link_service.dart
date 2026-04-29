@@ -52,15 +52,21 @@ class DeepLinkService {
     // Drop mid-episode deep links — episode screen requires state.extra
     final episodePattern = RegExp(r'^/series/[^/]+/episode/[^/]+$');
     if (episodePattern.hasMatch(path)) {
-      // Gracefully fall back to series screen
       final seriesId = uri.pathSegments[1];
       router.go('/series/$seriesId');
       return;
     }
 
+    // Club invite links — external URL uses /clubs/ (plural), router uses /club/ (singular)
+    final clubJoinMatch = RegExp(r'^/clubs/([^/]+)/join$').firstMatch(path);
+    if (clubJoinMatch != null) {
+      router.go('/club/${clubJoinMatch.group(1)!}/join');
+      return;
+    }
+
     // Recognised routable paths
     final routable = RegExp(
-      r'^/(series/[^/]+(/album)?|creator/[^/]+|race/[^/]+|quest/[^/]+)$',
+      r'^/(series/[^/]+(/album)?|creator/[^/]+|race/[^/]+|quest/[^/]+|club/[^/]+(/join)?)$',
     );
     if (routable.hasMatch(path)) {
       router.go(path);
