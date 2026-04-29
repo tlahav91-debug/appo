@@ -33,53 +33,58 @@ class _ClubScreenState extends ConsumerState<ClubScreen> {
     if (_joinPromptShown || !mounted) return;
     _joinPromptShown = true;
 
-    final currentClub = await ref.read(userClubProvider.future);
-    if (!mounted) return;
-    if (currentClub?.id == widget.clubId) return;
+    try {
+      final currentClub = await ref.read(userClubProvider.future);
+      if (!mounted) return;
+      if (currentClub?.id == widget.clubId) return;
 
-    final targetClub =
-        await ref.read(clubRepositoryProvider).fetchClub(widget.clubId);
-    if (!mounted) return;
+      final targetClub =
+          await ref.read(clubRepositoryProvider).fetchClub(widget.clubId);
+      if (!mounted) return;
 
-    final clubName = targetClub?.name ?? 'this club';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: surface,
-        title: Text('Join Club?',
-            style: GoogleFonts.nunito(
-                color: textCol, fontWeight: FontWeight.w800)),
-        content: Text(
-          currentClub != null
-              ? 'Leave "${currentClub.name}" and join "$clubName"?'
-              : 'Join "$clubName"?',
-          style: GoogleFonts.sora(color: textSec, fontSize: 13),
+      final clubName = targetClub?.name ?? 'this club';
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: surface,
+          title: Text('Join Club?',
+              style: GoogleFonts.nunito(
+                  color: textCol, fontWeight: FontWeight.w800)),
+          content: Text(
+            currentClub != null
+                ? 'Leave "${currentClub.name}" and join "$clubName"?'
+                : 'Join "$clubName"?',
+            style: GoogleFonts.sora(color: textSec, fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: GoogleFonts.sora(color: textDim)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Join',
+                  style: GoogleFonts.sora(
+                      color: cyan, fontWeight: FontWeight.w600)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: GoogleFonts.sora(color: textDim)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Join',
-                style: GoogleFonts.sora(
-                    color: cyan, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
+      );
 
-    if (confirmed == true && mounted) {
-      try {
+      if (confirmed == true && mounted) {
         await ref.read(clubActionProvider.notifier).join(widget.clubId);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString(), style: GoogleFonts.sora(color: textCol)),
-            backgroundColor: surface,
-          ));
-        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            e is Exception
+                ? 'Could not load join prompt. Find the club in Search.'
+                : e.toString(),
+            style: GoogleFonts.sora(color: textCol),
+          ),
+          backgroundColor: surface,
+        ));
       }
     }
   }
