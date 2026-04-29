@@ -23,12 +23,13 @@ Deno.serve(async (req) => {
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toISOString().substring(0, 10);
 
-  // Users who checked in yesterday
+  // Users who checked in yesterday — high limit to avoid PostgREST 1000-row default
   const { data: checkedYesterday } = await serviceClient
     .from("daily_check_ins")
     .select("user_id")
     .gte("checked_in_at", `${yesterdayStr}T00:00:00Z`)
-    .lt("checked_in_at", `${todayStr}T00:00:00Z`);
+    .lt("checked_in_at", `${todayStr}T00:00:00Z`)
+    .limit(50000);
 
   if (!checkedYesterday?.length) return json({ reminded: 0 });
 
@@ -36,7 +37,8 @@ Deno.serve(async (req) => {
   const { data: checkedToday } = await serviceClient
     .from("daily_check_ins")
     .select("user_id")
-    .gte("checked_in_at", `${todayStr}T00:00:00Z`);
+    .gte("checked_in_at", `${todayStr}T00:00:00Z`)
+    .limit(50000);
 
   const todayIds = new Set(
     (checkedToday ?? []).map((r: { user_id: string }) => r.user_id),
