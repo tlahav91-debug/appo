@@ -27,6 +27,7 @@ class _QALiveScreenState extends ConsumerState<QALiveScreen> {
   Timer? _countdownTimer;
   RealtimeChannel? _channel;
   String? _error;
+  String? _pinnedQuestionId;
 
   @override
   void dispose() {
@@ -130,6 +131,21 @@ class _QALiveScreenState extends ConsumerState<QALiveScreen> {
         });
       }
     }
+  }
+
+  Future<void> _pinQuestion(
+      String questionId, String body, String fanId) async {
+    try {
+      await ref
+          .read(qaRepositoryProvider)
+          .pinQuestion(widget.sessionId, questionId);
+      setState(() => _pinnedQuestionId = questionId);
+      await _channel?.sendBroadcastMessage(
+        event: 'pinned_question',
+        payload: {'id': questionId, 'body': body, 'fan_id': fanId},
+      );
+      ref.invalidate(sessionQuestionsProvider(widget.sessionId));
+    } catch (_) {}
   }
 
   @override
@@ -252,65 +268,81 @@ class _QALiveScreenState extends ConsumerState<QALiveScreen> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: ListView.builder(
-                  itemCount: _messages.length,
-                  itemBuilder: (_, i) {
-                    final msg = _messages[i];
-                    final sent =
-                        _broadcastPositions.contains(msg.position);
-                    final elapsed = _startedAt != null
-                        ? DateTime.now()
-                            .difference(_startedAt!)
-                            .inSeconds
-                        : 0;
-                    final remaining =
-                        (msg.delaySeconds - elapsed).clamp(0, 99999);
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: sent ? card : surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border:
-                            Border.all(color: sent ? cyan : borderHi),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            sent
-                                ? Icons.check_circle_outline
-                                : Icons.radio_button_unchecked,
-                            color: sent ? cyan : textDim,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(msg.body,
-                                    style: GoogleFonts.sora(
-                                        color: textCol, fontSize: 13)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  sent
-                                      ? 'Sent ✓'
-                                      : (remaining > 0
-                                          ? 'In ${remaining}s'
-                                          : 'Sending…'),
-                                  style: GoogleFonts.sora(
-                                      color: sent ? cyan : textDim,
-                                      fontSize: 11),
-                                ),
-                              ],
+                child: ListView(
+                  children: [
+                    // Scheduled messages
+                    ..._messages.map((msg) {
+                      final sent =
+                          _broadcastPositions.contains(msg.position);
+                      final elapsed = _startedAt != null
+                          ? DateTime.now()
+                              .difference(_startedAt!)
+                              .inSeconds
+                          : 0;
+                      final remaining =
+                          (msg.delaySeconds - elapsed).clamp(0, 99999);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: sent ? card : surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: sent ? cyan : borderHi),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              sent
+                                  ? Icons.check_circle_outline
+                                  : Icons.radio_button_unchecked,
+                              color: sent ? cyan : textDim,
+                              size: 18,
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(msg.body,
+                                      style: GoogleFonts.sora(
+                                          color: textCol, fontSize: 13)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    sent
+                                        ? 'Sent ✓'
+                                        : (remaining > 0
+                                            ? 'In ${remaining}s'
+                                            : 'Sending…'),
+                                    style: GoogleFonts.sora(
+                                        color: sent ? cyan : textDim,
+                                        fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    // Fan questions section
+                    const SizedBox(height: 16),
+                    Text(
+                      'Fan Questions 💬',
+                      style: GoogleFonts.nunito(
+                          color: textCol,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    _FanQuestionsSection(
+                      sessionId: widget.sessionId,
+                      pinnedQuestionId: _pinnedQuestionId,
+                      onPin: _pinQuestion,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -322,6 +354,76 @@ class _QALiveScreenState extends ConsumerState<QALiveScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FanQuestionsSection extends ConsumerWidget {
+  final String sessionId;
+  final String? pinnedQuestionId;
+  final void Function(String id, String body, String fanId) onPin;
+
+  const _FanQuestionsSection({
+    required this.sessionId,
+    required this.pinnedQuestionId,
+    required this.onPin,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final questionsAsync = ref.watch(sessionQuestionsProvider(sessionId));
+    return questionsAsync.when(
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: gold, strokeWidth: 2)),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (questions) {
+        if (questions.isEmpty) {
+          return Text('No questions yet.',
+              style: GoogleFonts.sora(color: textDim, fontSize: 12));
+        }
+        return Column(
+          children: questions.map((q) {
+            final qId = q['id'] as String;
+            final isPinned = pinnedQuestionId == qId;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isPinned ? cyan : borderHi),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(q['body'] as String,
+                        style:
+                            GoogleFonts.sora(color: textCol, fontSize: 13)),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: isPinned
+                        ? null
+                        : () => onPin(
+                            qId,
+                            q['body'] as String,
+                            q['fan_id'] as String),
+                    child: Text(
+                      isPinned ? '📌 Pinned' : '📌 Pin',
+                      style: GoogleFonts.nunito(
+                        color: isPinned ? cyan : textSec,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

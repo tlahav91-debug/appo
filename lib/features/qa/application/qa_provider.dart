@@ -21,3 +21,8 @@ final qaSessionDetailProvider =
     FutureProvider.autoDispose.family<QASession?, String>((ref, sessionId) {
   return ref.read(qaRepositoryProvider).fetchSession(sessionId);
 });
+
+final sessionQuestionsProvider =
+    FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, sessionId) {
+  return ref.read(qaRepositoryProvider).fetchQuestionsForSession(sessionId);
+});

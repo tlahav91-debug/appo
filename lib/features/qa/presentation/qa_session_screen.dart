@@ -24,12 +24,20 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
     '😱': 0,
     '🔥': 0,
   };
+  Map<String, dynamic>? _pinnedQuestion;
+  bool _hasSubmitted = false;
+  bool _submitting = false;
+  final TextEditingController _questionCtrl = TextEditingController();
   late final RealtimeChannel _channel;
 
   @override
   void initState() {
     super.initState();
     _initChannel();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final pinned = await ref.read(qaRepositoryProvider).fetchPinnedQuestion(widget.sessionId);
+      if (mounted && pinned != null) setState(() => _pinnedQuestion = pinned);
+    });
   }
 
   void _initChannel() {
@@ -43,6 +51,14 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
           if (mounted) {
             setState(() => _messages
                 .add(Map<String, dynamic>.from(payload)));
+          }
+        },
+      )
+      ..onBroadcast(
+        event: 'pinned_question',
+        callback: (payload) {
+          if (mounted) {
+            setState(() => _pinnedQuestion = Map<String, dynamic>.from(payload));
           }
         },
       )
@@ -70,8 +86,36 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
 
   @override
   void dispose() {
+    _questionCtrl.dispose();
     Supabase.instance.client.removeChannel(_channel);
     super.dispose();
+  }
+
+  Future<void> _submitQuestion() async {
+    final body = _questionCtrl.text.trim();
+    if (body.isEmpty || _submitting) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(qaRepositoryProvider).submitQuestion(widget.sessionId, body);
+      if (mounted) {
+        setState(() {
+          _hasSubmitted = true;
+          _submitting = false;
+        });
+        _questionCtrl.clear();
+      }
+    } on PostgrestException catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        final msg = e.code == '23505'
+            ? 'Already submitted a question'
+            : 'Failed to submit';
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      }
+    } catch (_) {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -124,6 +168,29 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
+          if (_pinnedQuestion != null)
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: lava.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: gold),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('📌', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _pinnedQuestion!['body'] as String,
+                      style: GoogleFonts.sora(color: textCol, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _messages.isEmpty
                 ? Center(
@@ -152,6 +219,65 @@ class _QASessionScreenState extends ConsumerState<QASessionScreen> {
                     ),
                   ),
           ),
+          if (!isEnded && !_hasSubmitted)
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              color: surface,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _questionCtrl,
+                      maxLength: 280,
+                      maxLines: 1,
+                      style: GoogleFonts.sora(color: textCol, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ask a question…',
+                        hintStyle: GoogleFonts.sora(
+                            color: textDim, fontSize: 13),
+                        counterText: '',
+                        filled: true,
+                        fillColor: card,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _submitting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              color: gold, strokeWidth: 2))
+                      : IconButton(
+                          icon: const Icon(Icons.send_rounded, color: gold),
+                          onPressed: _submitQuestion,
+                        ),
+                ],
+              ),
+            )
+          else if (_hasSubmitted)
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: surface,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle_outline,
+                      color: cyan, size: 16),
+                  const SizedBox(width: 6),
+                  Text('Question submitted ✓',
+                      style: GoogleFonts.sora(color: cyan, fontSize: 12)),
+                ],
+              ),
+            ),
           Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 12),

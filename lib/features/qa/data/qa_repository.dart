@@ -90,6 +90,43 @@ class QARepository {
     return sessionId;
   }
 
+  Future<void> submitQuestion(String sessionId, String body) async {
+    final userId = _db.auth.currentUser!.id;
+    await _db.from('creator_qa_questions').insert({
+      'session_id': sessionId,
+      'fan_id': userId,
+      'body': body,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchQuestionsForSession(String sessionId) async {
+    final data = await _db
+        .from('creator_qa_questions')
+        .select('id, body, fan_id, created_at')
+        .eq('session_id', sessionId)
+        .order('created_at', ascending: true);
+    return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  Future<void> pinQuestion(String sessionId, String questionId) async {
+    await _db
+        .from('creator_qa_sessions')
+        .update({'pinned_question_id': questionId})
+        .eq('id', sessionId);
+  }
+
+  Future<Map<String, dynamic>?> fetchPinnedQuestion(String sessionId) async {
+    final data = await _db
+        .from('creator_qa_sessions')
+        .select('pinned_question_id, creator_qa_questions(id, body, fan_id)')
+        .eq('id', sessionId)
+        .maybeSingle();
+    if (data == null) return null;
+    final nested = data['creator_qa_questions'];
+    if (nested == null) return null;
+    return Map<String, dynamic>.from(nested as Map);
+  }
+
   RealtimeChannel joinChannel(String sessionId) {
     return _db.channel('qa:$sessionId');
   }
