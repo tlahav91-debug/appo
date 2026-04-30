@@ -47,28 +47,6 @@ Deno.serve(async (req: Request) => {
   const { error } = await supabase.from("creator_notifications").insert(notifications);
   if (error) return json({ error: error.message }, 500);
 
-  // Fire-and-forget FCM push to each follower
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  Promise.allSettled(
-    follows.map((f: { follower_id: string }) =>
-      fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${serviceRoleKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: f.follower_id,
-          title: "New episode 🎬",
-          body: `${creatorName} just released: ${episode_title}`,
-          notification_type: "new_episodes",
-          data: { creator_id, type: "new_episode" },
-        }),
-      })
-    ),
-  );
-
   return json({ ok: true, notified: notifications.length });
 });
 
