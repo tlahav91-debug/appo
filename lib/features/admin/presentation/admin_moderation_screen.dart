@@ -4,64 +4,100 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../application/admin_provider.dart';
 
-class AdminModerationScreen extends ConsumerWidget {
+class AdminModerationScreen extends ConsumerStatefulWidget {
   const AdminModerationScreen({super.key});
+
+  @override
+  ConsumerState<AdminModerationScreen> createState() => _AdminModerationScreenState();
+}
+
+class _AdminModerationScreenState extends ConsumerState<AdminModerationScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: bgDeep,
+        appBar: AppBar(
+          backgroundColor: bgDeep,
+          elevation: 0,
+          leading: const BackButton(color: textCol),
+          title: Text(
+            'Admin Panel',
+            style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w800, fontSize: 18),
+          ),
+          bottom: TabBar(
+            labelStyle: GoogleFonts.sora(fontSize: 13, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: GoogleFonts.sora(fontSize: 13),
+            labelColor: textCol,
+            unselectedLabelColor: textDim,
+            indicatorColor: pink,
+            tabs: const [
+              Tab(text: 'Submissions'),
+              Tab(text: 'Payouts'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            _SubmissionsTab(),
+            _PayoutsTab(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Submissions tab
+// ---------------------------------------------------------------------------
+
+class _SubmissionsTab extends ConsumerWidget {
+  const _SubmissionsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final submissionsAsync = ref.watch(adminSubmissionsProvider);
-
-    return Scaffold(
-      backgroundColor: bgDeep,
-      appBar: AppBar(
-        backgroundColor: bgDeep,
-        elevation: 0,
-        leading: const BackButton(color: textCol),
-        title: Text(
-          'Content Moderation',
-          style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w800, fontSize: 18),
-        ),
+    return submissionsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: pink)),
+      error: (_, __) => Center(
+        child: Text('Failed to load', style: GoogleFonts.sora(color: textDim)),
       ),
-      body: submissionsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: pink)),
-        error: (_, __) => Center(
-          child: Text('Failed to load', style: GoogleFonts.sora(color: textDim)),
-        ),
-        data: (submissions) => submissions.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('✅', style: TextStyle(fontSize: 48)),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Queue is clear',
-                      style: GoogleFonts.nunito(
-                        color: textCol,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
+      data: (submissions) => submissions.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('✅', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Queue is clear',
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
                     ),
-                    Text(
-                      'No pending submissions',
-                      style: GoogleFonts.sora(color: textDim, fontSize: 13),
-                    ),
-                  ],
-                ),
-              )
-            : RefreshIndicator(
-                color: pink,
-                onRefresh: () async => ref.invalidate(adminSubmissionsProvider),
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  itemCount: submissions.length,
-                  itemBuilder: (context, index) => _SubmissionCard(
-                    sub: submissions[index],
-                    ref: ref,
                   ),
+                  Text(
+                    'No pending submissions',
+                    style: GoogleFonts.sora(color: textDim, fontSize: 13),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              color: pink,
+              onRefresh: () async => ref.invalidate(adminSubmissionsProvider),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                itemCount: submissions.length,
+                itemBuilder: (context, index) => _SubmissionCard(
+                  sub: submissions[index],
+                  ref: ref,
                 ),
               ),
-      ),
+            ),
     );
   }
 }
@@ -197,7 +233,7 @@ class _SubmissionCard extends StatelessWidget {
     );
   }
 
-  String _fmtDate(String iso) {
+  static String _fmtDate(String iso) {
     if (iso.isEmpty) return '';
     try {
       final dt = DateTime.parse(iso).toLocal();
@@ -211,6 +247,182 @@ class _SubmissionCard extends StatelessWidget {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Payouts tab
+// ---------------------------------------------------------------------------
+
+class _PayoutsTab extends ConsumerWidget {
+  const _PayoutsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final payoutsAsync = ref.watch(adminPayoutsProvider);
+    return payoutsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(color: pink)),
+      error: (_, __) => Center(
+        child: Text('Failed to load', style: GoogleFonts.sora(color: textDim)),
+      ),
+      data: (payouts) => payouts.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('✅', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'All paid up',
+                    style: GoogleFonts.nunito(
+                      color: textCol,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                  Text(
+                    'No pending payouts',
+                    style: GoogleFonts.sora(color: textDim, fontSize: 13),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              color: pink,
+              onRefresh: () async => ref.invalidate(adminPayoutsProvider),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                itemCount: payouts.length,
+                itemBuilder: (context, index) => _PayoutRow(
+                  payout: payouts[index],
+                  ref: ref,
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+class _PayoutRow extends StatelessWidget {
+  final Map<String, dynamic> payout;
+  final WidgetRef ref;
+
+  const _PayoutRow({required this.payout, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  payout['creator_name'] as String? ?? '',
+                  style: GoogleFonts.nunito(
+                    color: textCol,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '${payout['amount_scrolls']} 🪙 scrolls',
+                  style: GoogleFonts.sora(color: textSec, fontSize: 13),
+                ),
+                Text(
+                  _fmtDate(payout['requested_at'] as String? ?? ''),
+                  style: GoogleFonts.sora(color: textDim, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          _MarkPaidButton(payout: payout, ref: ref),
+        ],
+      ),
+    );
+  }
+
+  static String _fmtDate(String iso) {
+    if (iso.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(iso).toLocal();
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      return '${months[dt.month - 1]} ${dt.day}';
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+class _MarkPaidButton extends StatefulWidget {
+  final Map<String, dynamic> payout;
+  final WidgetRef ref;
+
+  const _MarkPaidButton({required this.payout, required this.ref});
+
+  @override
+  State<_MarkPaidButton> createState() => _MarkPaidButtonState();
+}
+
+class _MarkPaidButtonState extends State<_MarkPaidButton> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _loading ? null : _submit,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: goldGrad,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: _loading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(color: textCol, strokeWidth: 2),
+              )
+            : Text(
+                'Mark Paid',
+                style: GoogleFonts.sora(
+                  color: textCol,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _loading = true);
+    try {
+      await widget.ref
+          .read(adminRepositoryProvider)
+          .markPayoutPaid(widget.payout['id'] as String);
+      widget.ref.invalidate(adminPayoutsProvider);
+      messenger.showSnackBar(const SnackBar(content: Text('✅ Payout marked paid')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared bottom sheets (Approve / Reject) — unchanged from PRD-073
+// ---------------------------------------------------------------------------
 
 class _ApproveSheet extends StatefulWidget {
   final Map<String, dynamic> sub;

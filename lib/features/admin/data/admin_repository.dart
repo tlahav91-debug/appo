@@ -49,4 +49,26 @@ class AdminRepository {
       body: {'submission_id': submissionId, 'reason': reason},
     );
   }
+
+  Future<List<Map<String, dynamic>>> fetchPayouts() async {
+    final session = _db.auth.currentSession;
+    if (session == null) throw Exception('Not signed in');
+    final res = await _db.functions.invoke(
+      'get-admin-payouts',
+      headers: {'Authorization': 'Bearer ${session.accessToken}'},
+    );
+    if (res.data == null) throw Exception('No data');
+    final data = res.data as Map<String, dynamic>;
+    return List<Map<String, dynamic>>.from(data['payouts'] as List);
+  }
+
+  Future<void> markPayoutPaid(String requestId) async {
+    final session = _db.auth.currentSession;
+    if (session == null) throw Exception('Not signed in');
+    await _db.functions.invoke(
+      'admin-mark-payout-paid',
+      headers: {'Authorization': 'Bearer ${session.accessToken}'},
+      body: {'request_id': requestId},
+    );
+  }
 }

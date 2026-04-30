@@ -6,3 +6,7 @@ final adminRepositoryProvider = Provider<AdminRepository>((_) => AdminRepository
 final adminSubmissionsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   return ref.read(adminRepositoryProvider).fetchSubmissions();
 });
+
+final adminPayoutsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.read(adminRepositoryProvider).fetchPayouts();
+});
