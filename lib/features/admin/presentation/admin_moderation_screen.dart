@@ -429,11 +429,10 @@ class _ApproveSheetState extends State<_ApproveSheet> {
         newSeriesTitle: newTitle,
       );
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
         widget.ref.invalidate(adminSubmissionsProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Approved')),
-        );
+        messenger.showSnackBar(const SnackBar(content: Text('✅ Approved')));
       }
     } catch (e) {
       if (mounted) {
@@ -568,11 +567,10 @@ class _RejectSheetState extends State<_RejectSheet> {
         reason: reason,
       );
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
         widget.ref.invalidate(adminSubmissionsProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rejected')),
-        );
+        messenger.showSnackBar(const SnackBar(content: Text('Rejected')));
       }
     } catch (e) {
       if (mounted) {

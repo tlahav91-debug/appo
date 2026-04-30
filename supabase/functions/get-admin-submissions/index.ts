@@ -35,7 +35,8 @@ Deno.serve(async (req: Request) => {
       creator_profiles!content_submissions_creator_id_fkey(display_name)
     `)
     .eq("status", "submitted")
-    .order("submitted_at", { ascending: true });
+    .order("submitted_at", { ascending: true })
+    .limit(5000);
 
   if (qErr) return json({ error: qErr.message }, 500);
 
