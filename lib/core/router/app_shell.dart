@@ -70,12 +70,23 @@ class _AppShellState extends ConsumerState<AppShell> {
       }
     }
 
+    final isAdmin = profile?.isAdmin ?? false;
+
     return Scaffold(
       backgroundColor: bgDeep,
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.small(
+              backgroundColor: surface,
+              foregroundColor: textCol,
+              tooltip: 'Admin Moderation',
+              onPressed: () => context.push('/admin/moderation'),
+              child: const Text('🛡️', style: TextStyle(fontSize: 18)),
+            )
+          : null,
       bottomNavigationBar: _BottomBar(
         selectedIndex: _selectedIndex,
         tabs: _tabs,

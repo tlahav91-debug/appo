@@ -39,6 +39,7 @@ import '../../features/profile/presentation/notification_prefs_screen.dart';
 import '../../features/qa/presentation/qa_live_screen.dart';
 import '../../features/qa/presentation/qa_schedule_screen.dart';
 import '../../features/qa/presentation/qa_session_screen.dart';
+import '../../features/admin/presentation/admin_moderation_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -177,6 +178,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => CreatorEpisodeAnalyticsScreen(
           submissionId: state.pathParameters['submissionId']!,
         ),
+      ),
+      GoRoute(
+        path: '/admin/moderation',
+        builder: (_, __) => const AdminModerationScreen(),
       ),
       GoRoute(
         path: '/creator/:creatorId',

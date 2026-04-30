@@ -14,6 +14,7 @@ class Profile {
   final String? referralCode;
   final List<String> genrePreferences;
   final bool isCreator;
+  final bool isAdmin;
   final Map<String, bool> notificationPrefs;
 
   static const _defaultNotifPrefs = {
@@ -39,6 +40,7 @@ class Profile {
     this.referralCode,
     this.genrePreferences = const [],
     this.isCreator = false,
+    this.isAdmin = false,
     this.notificationPrefs = _defaultNotifPrefs,
   });
 
@@ -67,6 +69,7 @@ class Profile {
         genrePreferences: List<String>.from(
             json['genre_preferences'] as List? ?? []),
         isCreator: json['is_creator'] as bool? ?? false,
+        isAdmin: json['is_admin'] as bool? ?? false,
         notificationPrefs: _parseNotifPrefs(json['notification_prefs']),
       );
 
@@ -96,6 +99,7 @@ class Profile {
         'referral_code': referralCode,
         'genre_preferences': genrePreferences,
         'is_creator': isCreator,
+        'is_admin': isAdmin,
         'notification_prefs': notificationPrefs,
       };
 
@@ -114,6 +118,7 @@ class Profile {
     String? referralCode,
     List<String>? genrePreferences,
     bool? isCreator,
+    bool? isAdmin,
     Map<String, bool>? notificationPrefs,
   }) =>
       Profile(
@@ -132,6 +137,7 @@ class Profile {
         referralCode: referralCode ?? this.referralCode,
         genrePreferences: genrePreferences ?? this.genrePreferences,
         isCreator: isCreator ?? this.isCreator,
+        isAdmin: isAdmin ?? this.isAdmin,
         notificationPrefs: notificationPrefs ?? this.notificationPrefs,
       );
 
