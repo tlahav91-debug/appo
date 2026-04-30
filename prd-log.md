@@ -10,3 +10,4 @@
 | PRD-070 | Fan Discovery & Home Feed Redesign | ✅ Shipped | BUG-070-H1 (spotlight view no GRANT), BUG-070-M1 (anon RPC exposure), BUG-070-M2 (view ORDER BY unreliable), BUG-070-M3 (following strip UUID order) | ✅ | 1f21fb5, a0b867e, 826baed |
 | PRD-071 | Fan Episode Reactions (12 emojis) | ✅ Shipped | none | — | a07ca4d |
 | PRD-072 | Push Notifications: new episode + streak reminder | ✅ Shipped | BUG-072-H1 (PostgREST 1000-row truncation) | ✅ | d3260f1, 76d9c48 |
+| PRD-073 | Admin Content Moderation Screen | ✅ Shipped | BUG-073-M1 (context after pop crash), BUG-073-M2 (missing row limit) | ✅ | 2d455a9, d319afa |
