@@ -13,3 +13,4 @@
 | PRD-073 | Admin Content Moderation Screen | ✅ Shipped | BUG-073-M1 (context after pop crash), BUG-073-M2 (missing row limit) | ✅ | 2d455a9, d319afa |
 | PRD-075 | Creator Payout Admin Panel | ✅ Shipped | BUG-075-H1 (FK join mismatch in get-admin-payouts) | ✅ | e28745c, f2a2c25 |
 | PRD-077 | Fan Public Profile Page | ✅ Shipped | BUG-077-C1 (profiles_select_public exposes sensitive fields), BUG-077-H1 (creator_follows FK join broken) | ✅ | 045afd6, 2671fe1 |
+| PRD-078 | Rewarded Ads: Coin Refill Sheet | ✅ Shipped | BUG-078-M1 (GoRouter after Navigator.pop in _goToShop), BUG-078-L1 (unused router var) | ✅ | 37a9527, 0120c8c |
