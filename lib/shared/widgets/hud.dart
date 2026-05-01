@@ -10,6 +10,7 @@ import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/domain/fan_level.dart';
 import '../../features/profile/domain/profile.dart';
+import 'coin_refill_sheet.dart';
 import 'currency_display.dart';
 
 class HUD extends ConsumerWidget implements PreferredSizeWidget {
@@ -116,8 +117,13 @@ class _HudContent extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
-              // Coins
-              CurrencyDisplay(amount: profile.coins, emoji: '🪙', color: gold),
+              // Coins — tap opens refill sheet when balance is zero
+              GestureDetector(
+                onTap: profile.coins == 0
+                    ? () => CoinRefillSheet.show(context, ref)
+                    : null,
+                child: CurrencyDisplay(amount: profile.coins, emoji: '🪙', color: gold),
+              ),
               const SizedBox(width: 12),
               // Gems
               CurrencyDisplay(amount: profile.gems, emoji: '💎', color: cyan),
