@@ -40,6 +40,7 @@ import '../../features/qa/presentation/qa_live_screen.dart';
 import '../../features/qa/presentation/qa_schedule_screen.dart';
 import '../../features/qa/presentation/qa_session_screen.dart';
 import '../../features/admin/presentation/admin_moderation_screen.dart';
+import '../../features/profile/presentation/fan_profile_screen.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -182,6 +183,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/moderation',
         builder: (_, __) => const AdminModerationScreen(),
+      ),
+      GoRoute(
+        path: '/fan/:userId',
+        builder: (_, state) => FanProfileScreen(userId: state.pathParameters['userId']!),
       ),
       GoRoute(
         path: '/creator/:creatorId',

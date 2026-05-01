@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
@@ -148,11 +149,18 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen> {
                               text: TextSpan(
                                 style: GoogleFonts.nunito(fontSize: 14),
                                 children: [
-                                  TextSpan(
-                                    text: username,
-                                    style: const TextStyle(
-                                      color: textCol,
-                                      fontWeight: FontWeight.w700,
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: GestureDetector(
+                                      onTap: () => context.push('/fan/${item['user_id']}'),
+                                      child: Text(
+                                        username,
+                                        style: GoogleFonts.nunito(
+                                          color: textCol,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   const TextSpan(
