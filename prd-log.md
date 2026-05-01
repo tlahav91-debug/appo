@@ -11,3 +11,4 @@
 | PRD-071 | Fan Episode Reactions (12 emojis) | ✅ Shipped | none | — | a07ca4d |
 | PRD-072 | Push Notifications: new episode + streak reminder | ✅ Shipped | BUG-072-H1 (PostgREST 1000-row truncation) | ✅ | d3260f1, 76d9c48 |
 | PRD-073 | Admin Content Moderation Screen | ✅ Shipped | BUG-073-M1 (context after pop crash), BUG-073-M2 (missing row limit) | ✅ | 2d455a9, d319afa |
+| PRD-075 | Creator Payout Admin Panel | ✅ Shipped | BUG-075-H1 (FK join mismatch in get-admin-payouts) | ✅ | e28745c, f2a2c25 |
