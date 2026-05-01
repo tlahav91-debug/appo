@@ -29,17 +29,25 @@ Deno.serve(async (req: Request) => {
 
   const { data: rows, error: qErr } = await serviceClient
     .from("payout_requests")
-    .select("id, creator_id, amount_scrolls, requested_at, creator_profiles!payout_requests_creator_id_fkey(display_name)")
+    .select("id, creator_id, amount_scrolls, requested_at")
     .eq("status", "pending")
     .order("requested_at", { ascending: true })
     .limit(1000);
 
   if (qErr) return json({ error: qErr.message }, 500);
 
+  const creatorIds = [...new Set((rows ?? []).map((r: Record<string, unknown>) => r.creator_id as string))];
+
+  const { data: creatorRows } = creatorIds.length > 0
+    ? await serviceClient.from("creator_profiles").select("id, display_name").in("id", creatorIds)
+    : { data: [] };
+
+  const creatorMap = new Map((creatorRows ?? []).map((c: { id: string; display_name: string }) => [c.id, c.display_name]));
+
   const payouts = (rows ?? []).map((row: Record<string, unknown>) => ({
     id: row.id,
     creator_id: row.creator_id,
-    creator_name: (row.creator_profiles as { display_name?: string } | null)?.display_name ?? "Unknown",
+    creator_name: creatorMap.get(row.creator_id as string) ?? "Unknown",
     amount_scrolls: row.amount_scrolls,
     requested_at: row.requested_at,
   }));
