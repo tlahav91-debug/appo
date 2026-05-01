@@ -48,7 +48,6 @@ class _CoinRefillSheetBodyState extends State<_CoinRefillSheetBody> {
   Future<void> _watchAd() async {
     setState(() => _adLoading = true);
     final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
     try {
       final adService = widget.ref.read(rewardedAdServiceProvider);
       final rewarded = await adService.show(
@@ -79,8 +78,9 @@ class _CoinRefillSheetBodyState extends State<_CoinRefillSheetBody> {
   }
 
   void _goToShop() {
+    final router = GoRouter.of(context);
     Navigator.pop(context);
-    GoRouter.of(context).push('/shop/gems');
+    router.push('/shop/gems');
   }
 
   @override
