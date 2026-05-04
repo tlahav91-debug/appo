@@ -21,7 +21,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
+    _tab = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -86,7 +86,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                   unselectedLabelColor: textDim,
                   dividerColor: Colors.transparent,
                   tabs: const [
-                    Tab(text: '⭐ Fan Level'),
+                    Tab(text: '⭐ All Time'),
+                    Tab(text: '📅 This Week'),
+                    Tab(text: '👥 Friends'),
                     Tab(text: '⚡ Race'),
                   ],
                 ),
@@ -97,6 +99,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                   controller: _tab,
                   children: [
                     _FanLevelTab(myId: myId),
+                    _WeeklyTab(myId: myId),
+                    _FriendsTab(myId: myId),
                     _RaceTab(myId: myId),
                   ],
                 ),
@@ -126,6 +130,73 @@ class _FanLevelTab extends ConsumerWidget {
       ),
       data: (entries) =>
           _LeaderboardList(entries: entries, myId: myId, scoreLabel: 'XP'),
+    );
+  }
+}
+
+class _WeeklyTab extends ConsumerWidget {
+  final String? myId;
+  const _WeeklyTab({this.myId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(weeklyLeaderboardProvider);
+    return async.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: gold, strokeWidth: 2),
+      ),
+      error: (_, __) => Center(
+        child: Text('Failed to load', style: GoogleFonts.sora(color: textDim)),
+      ),
+      data: (entries) => entries.isEmpty
+          ? Center(
+              child: Text(
+                'No data yet this week',
+                style: GoogleFonts.sora(color: textDim),
+              ),
+            )
+          : _LeaderboardList(entries: entries, myId: myId, scoreLabel: 'this wk'),
+    );
+  }
+}
+
+class _FriendsTab extends ConsumerWidget {
+  final String? myId;
+  const _FriendsTab({this.myId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(friendsLeaderboardProvider);
+    return async.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: purple, strokeWidth: 2),
+      ),
+      error: (_, __) => Center(
+        child: Text('Failed to load', style: GoogleFonts.sora(color: textDim)),
+      ),
+      data: (entries) => entries.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('👥', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No friends yet',
+                    style: GoogleFonts.nunito(
+                      color: textDim,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    'Follow fans to see them here',
+                    style: GoogleFonts.sora(color: textDim, fontSize: 13),
+                  ),
+                ],
+              ),
+            )
+          : _LeaderboardList(entries: entries, myId: myId, scoreLabel: 'XP'),
     );
   }
 }
