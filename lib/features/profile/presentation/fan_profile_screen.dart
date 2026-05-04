@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../features/achievements/application/achievements_provider.dart';
 import '../application/fan_profile_provider.dart';
 
 class FanProfileScreen extends ConsumerWidget {
@@ -199,6 +200,36 @@ class FanProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+                // Achievements section
+                const SizedBox(height: 28),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Achievements',
+                          style: GoogleFonts.sora(color: textSec, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      ref.watch(userAchievementsProvider(userId)).when(
+                        loading: () => const SizedBox(height: 72),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (earned) => SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: kAllAchievements.map((a) {
+                              final isEarned = earned.contains(a['key']);
+                              return _BadgeTile(
+                                icon: a['icon']!,
+                                name: a['name']!,
+                                earned: isEarned,
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
@@ -253,6 +284,48 @@ class _StatChip extends StatelessWidget {
         ),
         Text(label, style: GoogleFonts.sora(color: textDim, fontSize: 10)),
       ],
+    );
+  }
+}
+
+class _BadgeTile extends StatelessWidget {
+  final String icon;
+  final String name;
+  final bool earned;
+
+  const _BadgeTile({required this.icon, required this.name, required this.earned});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: earned ? 1.0 : 0.35,
+      child: Container(
+        width: 64,
+        height: 72,
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          gradient: earned ? goldGrad : null,
+          color: earned ? null : card,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 4),
+            Text(
+              name,
+              style: GoogleFonts.sora(
+                color: earned ? bgDeep : textDim,
+                fontSize: 8,
+              ),
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
