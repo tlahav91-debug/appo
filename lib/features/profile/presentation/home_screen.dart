@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/tokens.dart';
+import '../../../features/daily_reward/presentation/daily_reward_banner.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/stars.dart';
 import '../../club/application/club_provider.dart';
@@ -170,6 +171,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
+
+                // ----------------------------------------------------------------
+                // 2b. Daily Reward Banner
+                // ----------------------------------------------------------------
+                const SliverToBoxAdapter(child: DailyRewardBanner()),
 
                 // ----------------------------------------------------------------
                 // 3. Continue Watching Strip
