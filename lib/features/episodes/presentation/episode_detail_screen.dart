@@ -16,6 +16,7 @@ import '../application/comments_provider.dart';
 import 'comments_sheet.dart';
 import '../application/series_rating_provider.dart';
 import '../../social/application/social_provider.dart';
+import '../../achievements/application/achievements_provider.dart';
 import '../../collectibles/application/album_provider.dart';
 import '../../profile/application/profile_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -550,6 +551,9 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
         });
         if (!_alreadyClaimed) {
           ref.invalidate(profileProvider);
+          ref.invalidate(seriesCompletionsProvider);
+          final uid = Supabase.instance.client.auth.currentUser?.id;
+          if (uid != null) ref.invalidate(userAchievementsProvider(uid));
         }
       }
     } catch (_) {

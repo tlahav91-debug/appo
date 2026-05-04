@@ -21,6 +21,67 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function computeStreak(isoDates: string[]): number {
+  const dates = [...new Set(isoDates.map((d) => d.slice(0, 10)))].sort((a, b) =>
+    b.localeCompare(a)
+  );
+  if (dates.length === 0) return 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  if (dates[0] !== today && dates[0] !== yesterday) return 0;
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const prev = new Date(dates[i - 1]).getTime();
+    const curr = new Date(dates[i]).getTime();
+    if (Math.round((prev - curr) / 86_400_000) === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
+async function verifyCondition(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+  key: string,
+): Promise<boolean> {
+  switch (key) {
+    case "first_episode":
+    case "episodes_10":
+    case "episodes_50": {
+      const required = key === "first_episode" ? 1 : key === "episodes_10" ? 10 : 50;
+      const { count } = await serviceClient
+        .from("watch_progress")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("completed", true);
+      return (count ?? 0) >= required;
+    }
+    case "streak_7":
+    case "streak_30": {
+      const required = key === "streak_7" ? 7 : 30;
+      const { data: checkIns } = await serviceClient
+        .from("daily_check_ins")
+        .select("checked_in_at")
+        .eq("user_id", userId)
+        .order("checked_in_at", { ascending: false })
+        .limit(60);
+      if (!checkIns || checkIns.length === 0) return false;
+      return computeStreak(checkIns.map((c) => c.checked_in_at as string)) >= required;
+    }
+    case "first_series":
+    case "series_5": {
+      const required = key === "first_series" ? 1 : 5;
+      const { count } = await serviceClient
+        .from("series_completions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId);
+      return (count ?? 0) >= required;
+    }
+    default:
+      return false;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -46,6 +107,10 @@ Deno.serve(async (req: Request) => {
 
   const serviceClient = createClient(supabaseUrl, serviceKey);
 
+  // Server-side condition verification — prevents self-granting unearned achievements
+  const conditionMet = await verifyCondition(serviceClient, userId, achievement_key);
+  if (!conditionMet) return json({ error: "Condition not met" }, 403);
+
   // Idempotency check
   const { data: existing } = await serviceClient
     .from("user_achievements")
@@ -60,21 +125,25 @@ Deno.serve(async (req: Request) => {
   const { error: insertErr } = await serviceClient
     .from("user_achievements")
     .insert({ user_id: userId, achievement_key });
-  if (insertErr) return json({ error: "Failed to record achievement" }, 500);
-
-  // Credit XP
-  const xpReward = XP_REWARDS[achievement_key];
-  const { data: profile } = await serviceClient
-    .from("profiles")
-    .select("xp")
-    .eq("id", userId)
-    .single();
-  if (profile) {
-    await serviceClient
-      .from("profiles")
-      .update({ xp: (profile.xp ?? 0) + xpReward })
-      .eq("id", userId);
+  if (insertErr) {
+    // PK conflict: a concurrent request already granted it
+    if (insertErr.code === "23505") return json({ granted: false, already_earned: true });
+    return json({ error: "Failed to record achievement" }, 500);
   }
 
-  return json({ granted: true, achievement_key, xp_awarded: xpReward });
+  // Credit XP via RPC so fan_level is recalculated atomically
+  const xpReward = XP_REWARDS[achievement_key];
+  let leveledUp = false;
+  let newFanLevel: number | null = null;
+  const { data: xpData } = await serviceClient.rpc("grant_xp", {
+    p_user_id: userId,
+    p_amount: xpReward,
+    p_source: "achievement",
+  });
+  if (xpData) {
+    leveledUp = xpData.leveled_up ?? false;
+    newFanLevel = xpData.new_fan_level ?? null;
+  }
+
+  return json({ granted: true, achievement_key, xp_awarded: xpReward, leveled_up: leveledUp, new_fan_level: newFanLevel });
 });

@@ -138,37 +138,45 @@ Deno.serve(async (req: Request) => {
   }
 
   // Grant achievements: first_series (1st completion) and series_5 (5th completion)
-  const { count: completionCount } = await serviceClient
+  const achievementsGranted: string[] = [];
+  const achievementXp: Record<string, number> = { first_series: 50, series_5: 150 };
+
+  const { count: completionCount, error: countErr } = await serviceClient
     .from("series_completions")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId);
 
-  const achievementsGranted: string[] = [];
-  const achievementXp: Record<string, number> = { first_series: 50, series_5: 150 };
-  const keysToCheck: string[] = [];
-  if ((completionCount ?? 0) === 1) keysToCheck.push("first_series");
-  if ((completionCount ?? 0) >= 5) keysToCheck.push("series_5");
+  if (!countErr) {
+    const keysToCheck: string[] = [];
+    if ((completionCount ?? 0) === 1) keysToCheck.push("first_series");
+    if ((completionCount ?? 0) >= 5) keysToCheck.push("series_5");
 
-  for (const key of keysToCheck) {
-    const { data: existing } = await serviceClient
-      .from("user_achievements")
-      .select("achievement_key")
-      .eq("user_id", userId)
-      .eq("achievement_key", key)
-      .maybeSingle();
-    if (!existing) {
-      const { error: achErr } = await serviceClient
+    for (const key of keysToCheck) {
+      const { data: existing } = await serviceClient
         .from("user_achievements")
-        .insert({ user_id: userId, achievement_key: key });
-      if (!achErr) {
-        achievementsGranted.push(key);
-        await serviceClient.rpc("grant_xp", {
-          p_user_id: userId,
-          p_amount: achievementXp[key],
-          p_source: "achievement",
-        });
+        .select("achievement_key")
+        .eq("user_id", userId)
+        .eq("achievement_key", key)
+        .maybeSingle();
+      if (!existing) {
+        const { error: achErr } = await serviceClient
+          .from("user_achievements")
+          .insert({ user_id: userId, achievement_key: key });
+        // PK conflict (23505) means a concurrent request already granted it — not an error
+        if (!achErr || achErr.code === "23505") {
+          if (!achErr) achievementsGranted.push(key);
+          const { data: achXpData } = await serviceClient.rpc("grant_xp", {
+            p_user_id: userId,
+            p_amount: achievementXp[key],
+            p_source: "achievement",
+          });
+          if (achXpData?.leveled_up) leveledUp = true;
+          if (achXpData?.new_fan_level) newFanLevel = achXpData.new_fan_level;
+        }
       }
     }
+  } else {
+    console.error("series_completions count query failed:", countErr);
   }
 
   return json({
