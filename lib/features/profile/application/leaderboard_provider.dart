@@ -52,11 +52,10 @@ final weeklyLeaderboardProvider = FutureProvider<List<LeaderboardEntry>>((ref) a
 });
 
 // Friends leaderboard — fans followed by current user, ranked by all-time XP
+// RPC uses auth.uid() internally — no viewer_id param needed
 final friendsLeaderboardProvider = FutureProvider<List<LeaderboardEntry>>((ref) async {
-  final userId = Supabase.instance.client.auth.currentUser?.id;
-  if (userId == null) return [];
-  final data = await Supabase.instance.client
-      .rpc('get_friends_leaderboard', params: {'viewer_id': userId});
+  if (Supabase.instance.client.auth.currentUser == null) return [];
+  final data = await Supabase.instance.client.rpc('get_friends_leaderboard');
   final rows = (data as List).cast<Map<String, dynamic>>();
   return rows.asMap().entries.map((e) => LeaderboardEntry(
     userId: e.value['user_id'] as String,

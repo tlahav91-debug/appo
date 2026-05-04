@@ -47,8 +47,8 @@ LANGUAGE sql SECURITY DEFINER AS $$
   LIMIT 100;
 $$;
 
--- Friends leaderboard RPC: followed fans ranked by all-time XP
-CREATE OR REPLACE FUNCTION public.get_friends_leaderboard(viewer_id uuid)
+-- Friends leaderboard RPC: followed fans ranked by all-time XP (caller identity enforced via auth.uid())
+CREATE OR REPLACE FUNCTION public.get_friends_leaderboard()
 RETURNS TABLE(user_id uuid, username text, avatar_url text, fan_level int, xp int)
 LANGUAGE sql SECURITY DEFINER AS $$
   SELECT
@@ -59,7 +59,7 @@ LANGUAGE sql SECURITY DEFINER AS $$
     p.xp
   FROM public.public_fan_profiles p
   INNER JOIN public.fan_follows f
-    ON f.followed_id = p.id AND f.follower_id = viewer_id
+    ON f.followed_id = p.id AND f.follower_id = auth.uid()
   ORDER BY p.xp DESC
   LIMIT 100;
 $$;
