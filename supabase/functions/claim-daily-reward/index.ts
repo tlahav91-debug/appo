@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
     { onConflict: "user_id", ignoreDuplicates: true }
   );
 
-  // Fetch current cycle state
+  // Fetch current cycle state to read cycle_day and check idempotency
   const { data: cycleRow, error: cycleErr } = await serviceClient
     .from("daily_reward_cycles")
     .select("cycle_day, last_claimed_at")
@@ -75,9 +75,8 @@ Deno.serve(async (req: Request) => {
   const cycleDay: number = cycleRow.cycle_day;
   const today = new Date().toISOString().substring(0, 10);
   const lastClaimed: string | null = cycleRow.last_claimed_at;
-  const alreadyClaimed = lastClaimed != null && lastClaimed.substring(0, 10) === today;
 
-  // Fetch streak (before today's check-in)
+  // Fetch streak (before today's check-in so multiplier reflects yesterday's state)
   const { data: checkIns } = await serviceClient
     .from("daily_check_ins")
     .select("checked_in_at")
@@ -94,11 +93,31 @@ Deno.serve(async (req: Request) => {
     xp: baseReward.xp,
   };
 
-  if (alreadyClaimed) {
+  // Early return for obvious already-claimed (avoids DB write attempt)
+  if (lastClaimed != null && lastClaimed.substring(0, 10) === today) {
     return json({ claimed_today: true, cycle_day: cycleDay, reward, streak, already_claimed: true });
   }
 
-  // Fetch current profile values for atomic update
+  // Atomic claim guard: only advance the row when last_claimed_at is not today.
+  // If two concurrent requests race here, only one will match the WHERE clause.
+  const nextDay = cycleDay === 7 ? 1 : cycleDay + 1;
+  const { data: claimRows } = await serviceClient
+    .from("daily_reward_cycles")
+    .update({
+      cycle_day: nextDay,
+      last_claimed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .or(`last_claimed_at.is.null,last_claimed_at.lt.${today}T00:00:00.000Z`)
+    .select("cycle_day");
+
+  // If no row was updated, another concurrent request already claimed today
+  if (!claimRows || claimRows.length === 0) {
+    return json({ claimed_today: true, cycle_day: cycleDay, reward, streak, already_claimed: true });
+  }
+
+  // Fetch current profile values for safe increment
   const { data: profile, error: profileErr } = await serviceClient
     .from("profiles")
     .select("scrolls, gems, xp")
@@ -118,14 +137,6 @@ Deno.serve(async (req: Request) => {
     user_id: userId,
     checked_in_at: new Date().toISOString(),
   });
-
-  // Advance cycle day
-  const nextDay = cycleDay === 7 ? 1 : cycleDay + 1;
-  await serviceClient.from("daily_reward_cycles").update({
-    cycle_day: nextDay,
-    last_claimed_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq("user_id", userId);
 
   return json({
     claimed_today: true,

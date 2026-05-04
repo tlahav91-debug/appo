@@ -36,7 +36,7 @@ class DailyRewardBanner extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              Text(
+              const Text(
                 '🔥',
                 style: TextStyle(fontSize: 22),
               ),
