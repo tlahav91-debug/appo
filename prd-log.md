@@ -16,3 +16,5 @@
 | PRD-078 | Rewarded Ads: Coin Refill Sheet | ✅ Shipped | BUG-078-M1 (GoRouter after Navigator.pop in _goToShop), BUG-078-L1 (unused router var) | ✅ | 37a9527, 0120c8c |
 | PRD-081 | Daily Login Reward Calendar | ✅ Shipped | BUG-081-C1 (race condition double-claim), BUG-081-L1 (non-const TextStyle) | ✅ | 9bffa8f, 0282566, ce355b2, a0e1939 |
 | PRD-086 | Leaderboard: Weekly + Friends Filter | ✅ Shipped | BUG-086-M1 (get_friends_leaderboard viewer_id exposes any user's friend list) | ✅ | e81de83, d39ceb7, 18c9648, fc3a468 |
+| PRD-087 | Achievement Badge System | ✅ Shipped | BUG-087-H1 (self-grant exploit — no condition check), BUG-087-H2 (XP via raw UPDATE bypasses level-up), BUG-087-H3 (PK conflict returns 500 instead of already_earned) | ✅ | 1a1425a, 4053a85 |
+| PRD-088 | Series Completion Reward | ✅ Shipped | BUG-088-H1 (achievement level-up discarded from response), BUG-088-M1 (seriesCompletionsProvider not invalidated after completion), BUG-088-M2 (completionCount error unguarded) | ✅ | 47660ff, 4053a85 |
