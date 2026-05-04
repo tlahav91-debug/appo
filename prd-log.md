@@ -15,3 +15,4 @@
 | PRD-077 | Fan Public Profile Page | ✅ Shipped | BUG-077-C1 (profiles_select_public exposes sensitive fields), BUG-077-H1 (creator_follows FK join broken) | ✅ | 045afd6, 2671fe1 |
 | PRD-078 | Rewarded Ads: Coin Refill Sheet | ✅ Shipped | BUG-078-M1 (GoRouter after Navigator.pop in _goToShop), BUG-078-L1 (unused router var) | ✅ | 37a9527, 0120c8c |
 | PRD-081 | Daily Login Reward Calendar | ✅ Shipped | BUG-081-C1 (race condition double-claim), BUG-081-L1 (non-const TextStyle) | ✅ | 9bffa8f, 0282566, ce355b2, a0e1939 |
+| PRD-086 | Leaderboard: Weekly + Friends Filter | ✅ Shipped | BUG-086-M1 (get_friends_leaderboard viewer_id exposes any user's friend list) | ✅ | e81de83, d39ceb7, 18c9648, fc3a468 |
