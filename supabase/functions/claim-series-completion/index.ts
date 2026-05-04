@@ -137,12 +137,47 @@ Deno.serve(async (req: Request) => {
     console.error("profiles.coins update failed:", updateErr);
   }
 
+  // Grant achievements: first_series (1st completion) and series_5 (5th completion)
+  const { count: completionCount } = await serviceClient
+    .from("series_completions")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  const achievementsGranted: string[] = [];
+  const achievementXp: Record<string, number> = { first_series: 50, series_5: 150 };
+  const keysToCheck: string[] = [];
+  if ((completionCount ?? 0) === 1) keysToCheck.push("first_series");
+  if ((completionCount ?? 0) >= 5) keysToCheck.push("series_5");
+
+  for (const key of keysToCheck) {
+    const { data: existing } = await serviceClient
+      .from("user_achievements")
+      .select("achievement_key")
+      .eq("user_id", userId)
+      .eq("achievement_key", key)
+      .maybeSingle();
+    if (!existing) {
+      const { error: achErr } = await serviceClient
+        .from("user_achievements")
+        .insert({ user_id: userId, achievement_key: key });
+      if (!achErr) {
+        achievementsGranted.push(key);
+        await serviceClient.rpc("grant_xp", {
+          p_user_id: userId,
+          p_amount: achievementXp[key],
+          p_source: "achievement",
+        });
+      }
+    }
+  }
+
   return json({
     already_claimed: false,
     coins_granted: COINS_REWARD,
     xp_granted: XP_REWARD,
     leveled_up: leveledUp,
     new_fan_level: newFanLevel,
+    achievements_granted: achievementsGranted,
   }, 200);
 });
 

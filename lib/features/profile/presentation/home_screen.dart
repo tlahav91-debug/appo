@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/tokens.dart';
+import '../../../features/achievements/application/achievements_provider.dart';
 import '../../../features/daily_reward/presentation/daily_reward_banner.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/stars.dart';
@@ -980,13 +981,16 @@ class _TrendingPosterCard extends StatelessWidget {
 // Drama Grid Series Card
 // ---------------------------------------------------------------------------
 
-class _GridSeriesCard extends StatelessWidget {
+class _GridSeriesCard extends ConsumerWidget {
   final HomeSeries series;
 
   const _GridSeriesCard({required this.series});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final completedIds = ref.watch(seriesCompletionsProvider).valueOrNull ?? const {};
+    final isCompleted = completedIds.contains(series.id);
+
     return GestureDetector(
       onTap: () => context.push('/series/${series.id}'),
       child: ClipRRect(
@@ -1055,6 +1059,30 @@ class _GridSeriesCard extends StatelessWidget {
                         color: bgDeep,
                         fontWeight: FontWeight.w900,
                         fontSize: 8,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Completion checkmark — top left
+              if (isCompleted)
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      gradient: goldGrad,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '✓',
+                      style: TextStyle(
+                        color: bgDeep,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
