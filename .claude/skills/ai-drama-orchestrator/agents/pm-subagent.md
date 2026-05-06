@@ -48,3 +48,28 @@ RLS TABLES TO VERIFY:
 ACCEPTANCE CRITERIA:
 [Copied from PRD]
 ```
+
+## How to brief Growth
+
+Consult Growth before writing any PRD that touches:
+- Push notifications (any tier)
+- Streak mechanics or re-engagement timing
+- Energy reminder scheduling
+- Notification copy or opt-out preferences
+
+```
+GROWTH BRIEF — [Feature Name]
+PRD ID: PRD-[NNN]
+
+CONTEXT:
+[What the user was doing when they left / what triggered the notification need]
+
+NOTIFICATION TYPE:
+[New / change to existing — include notification_type key]
+
+QUESTIONS:
+[What the PM needs Growth to decide — timing, copy, tier, frequency cap]
+
+CONSTRAINTS:
+[Any existing notification_prefs keys that must not conflict]
+```
