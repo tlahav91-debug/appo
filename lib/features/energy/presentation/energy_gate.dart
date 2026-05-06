@@ -241,9 +241,23 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                 _AdButton(onDismiss: () => Navigator.pop(context)),
                 const SizedBox(height: 10),
 
-                // Option 5 — Wait
+                // Option 5 — Wait (fires schedule-energy-reminder fire-and-forget)
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    final session = Supabase.instance.client.auth.currentSession;
+                    final energy = ref.read(energyStateProvider);
+                    if (session != null) {
+                      Supabase.instance.client.functions.invoke(
+                        'schedule-energy-reminder',
+                        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+                        body: {
+                          'energy_current': energy.current,
+                          'energy_max': EnergyState.max,
+                        },
+                      ).ignore();
+                    }
+                    Navigator.pop(context);
+                  },
                   child: Text(
                     'Wait for free energy',
                     style: GoogleFonts.sora(color: textDim, fontSize: 14),

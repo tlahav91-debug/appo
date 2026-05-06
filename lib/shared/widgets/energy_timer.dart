@@ -54,6 +54,20 @@ class _EnergyTimerState extends ConsumerState<EnergyTimer> {
       );
     }
 
+    final unitsNeeded = EnergyState.max - energy.current;
+
+    if (unitsNeeded >= 2) {
+      // Total time = time to next tick + (remaining units - 1) full hour intervals
+      final totalSeconds = _remaining!.inSeconds + (unitsNeeded - 1) * 3600;
+      final hours = totalSeconds ~/ 3600;
+      final mins = (totalSeconds % 3600) ~/ 60;
+      final label = hours > 0 ? 'Full in ${hours}h ${mins}m' : 'Full in ${mins}m';
+      return Text(
+        label,
+        style: GoogleFonts.sora(color: textSec, fontSize: 12),
+      );
+    }
+
     final mins = _remaining!.inMinutes.remainder(60).toString().padLeft(2, '0');
     final secs = _remaining!.inSeconds.remainder(60).toString().padLeft(2, '0');
 
