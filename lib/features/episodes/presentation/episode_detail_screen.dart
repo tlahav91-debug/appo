@@ -527,6 +527,7 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
   int _coinsGranted = 0;
   int _xpGranted = 0;
   bool _leveledUp = false;
+  bool _dramaPassBonus = false;
   List<String> _achievementsGranted = [];
 
   @override
@@ -548,6 +549,7 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
           _coinsGranted = (data['coins_granted'] as num?)?.toInt() ?? 0;
           _xpGranted = (data['xp_granted'] as num?)?.toInt() ?? 0;
           _leveledUp = data['leveled_up'] as bool? ?? false;
+          _dramaPassBonus = data['drama_pass_bonus'] as bool? ?? false;
           _achievementsGranted = (data['achievements_granted'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ?? [];
@@ -615,6 +617,19 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
                       style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800, fontSize: 16),
                     ),
                   ),
+                  if (_dramaPassBonus) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(gradient: goldGrad, borderRadius: BorderRadius.circular(8)),
+                          child: Text('2× XP · Drama Pass', style: GoogleFonts.nunito(color: bgDeep, fontWeight: FontWeight.w800, fontSize: 11)),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (_leveledUp) ...[
                     const SizedBox(height: 8),
                     Text('🎉 Level Up!', style: GoogleFonts.nunito(color: pink, fontWeight: FontWeight.w900, fontSize: 18)),
