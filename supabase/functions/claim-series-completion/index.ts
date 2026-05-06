@@ -86,9 +86,17 @@ Deno.serve(async (req: Request) => {
   let leveledUp = false;
   let newFanLevel: number | null = null;
 
+  // Apply Drama Pass 2x XP bonus
+  const { data: passProfile } = await serviceClient
+    .from("profiles")
+    .select("drama_pass_active")
+    .eq("id", userId)
+    .single();
+  const xpAmount = passProfile?.drama_pass_active ? XP_REWARD * 2 : XP_REWARD;
+
   const { data: xpData, error: xpErr } = await serviceClient.rpc("grant_xp", {
     p_user_id: userId,
-    p_amount: XP_REWARD,
+    p_amount: xpAmount,
     p_source: "series_completion",
   });
   if (xpErr) {
@@ -183,10 +191,11 @@ Deno.serve(async (req: Request) => {
   return json({
     already_claimed: false,
     coins_granted: COINS_REWARD,
-    xp_granted: XP_REWARD,
+    xp_granted: xpAmount,
     leveled_up: leveledUp,
     new_fan_level: newFanLevel,
     achievements_granted: achievementsGranted,
+    drama_pass_bonus: passProfile?.drama_pass_active ?? false,
   }, 200);
 });
 

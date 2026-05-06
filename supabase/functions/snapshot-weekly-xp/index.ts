@@ -25,25 +25,40 @@ Deno.serve(async (req: Request) => {
   now.setUTCDate(now.getUTCDate() - ((now.getUTCDay() + 6) % 7));
   const weekStart = now.toISOString().substring(0, 10);
 
-  // Fetch all profiles
-  const { data: profiles, error: profilesErr } = await serviceClient
-    .from("profiles")
-    .select("id, xp")
-    .limit(10000);
-  if (profilesErr || !profiles) return json({ error: "Failed to fetch profiles" }, 500);
+  // Fetch all profiles using keyset pagination to handle more than 10k users
+  const batchSize = 1000;
+  let lastId = "00000000-0000-0000-0000-000000000000";
+  let totalSnapshotted = 0;
+  let batch: { id: string; xp: number }[];
 
-  if (profiles.length === 0) return json({ snapshotted: 0, week_start: weekStart });
+  do {
+    const { data, error: profilesErr } = await serviceClient
+      .from("profiles")
+      .select("id, xp")
+      .gt("id", lastId)
+      .order("id")
+      .limit(batchSize);
 
-  const rows = profiles.map((p: { id: string; xp: number }) => ({
-    user_id: p.id,
-    week_start: weekStart,
-    xp_at_start: p.xp ?? 0,
-  }));
+    if (profilesErr) return json({ error: "Failed to fetch profiles" }, 500);
 
-  // ignoreDuplicates: re-running mid-week is a no-op for already-snapshotted users
-  await serviceClient
-    .from("weekly_xp_snapshots")
-    .upsert(rows, { onConflict: "user_id,week_start", ignoreDuplicates: true });
+    batch = data ?? [];
 
-  return json({ snapshotted: rows.length, week_start: weekStart });
+    if (batch.length > 0) {
+      const rows = batch.map((p) => ({
+        user_id: p.id,
+        week_start: weekStart,
+        xp_at_start: p.xp ?? 0,
+      }));
+
+      // ignoreDuplicates: re-running mid-week is a no-op for already-snapshotted users
+      await serviceClient
+        .from("weekly_xp_snapshots")
+        .upsert(rows, { onConflict: "user_id,week_start", ignoreDuplicates: true });
+
+      totalSnapshotted += rows.length;
+      lastId = batch[batch.length - 1].id;
+    }
+  } while (batch.length === batchSize);
+
+  return json({ snapshotted: totalSnapshotted, week_start: weekStart });
 });

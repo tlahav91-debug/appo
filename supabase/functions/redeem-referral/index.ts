@@ -63,26 +63,28 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Failed to record referral" }, 500);
   }
 
-  // 6. Award 100 coins to referrer
-  const { error: rpcErr1 } = await supabase.rpc("increment_currency", {
-    uid: referrerId,
-    d_coins: 100,
-    d_gems: 0,
-  });
-  if (rpcErr1) {
-    console.error("Failed to reward referrer:", rpcErr1.message);
-    return json({ error: "Failed to credit referrer reward" }, 500);
-  }
+  // 6 & 7. Award 100 coins to referrer and referee — rollback referral row on partial failure
+  try {
+    // Award 100 coins to referrer
+    const { error: rpcErr1 } = await supabase.rpc("increment_currency", {
+      uid: referrerId,
+      d_coins: 100,
+      d_gems: 0,
+    });
+    if (rpcErr1) throw rpcErr1;
 
-  // 7. Award 100 coins to referee (caller)
-  const { error: rpcErr2 } = await supabase.rpc("increment_currency", {
-    uid: callerId,
-    d_coins: 100,
-    d_gems: 0,
-  });
-  if (rpcErr2) {
-    console.error("Failed to reward referee:", rpcErr2.message);
-    return json({ error: "Failed to credit referee reward" }, 500);
+    // Award 100 coins to referee (caller)
+    const { error: rpcErr2 } = await supabase.rpc("increment_currency", {
+      uid: callerId,
+      d_coins: 100,
+      d_gems: 0,
+    });
+    if (rpcErr2) throw rpcErr2;
+  } catch (creditErr) {
+    console.error("Failed to credit referral rewards:", creditErr);
+    // Rollback — delete the referral row so a retry is possible
+    await supabase.from("referrals").delete().eq("referee_id", callerId).eq("referrer_id", referrerId);
+    return json({ error: "Reward grant failed, please retry" }, 500);
   }
 
   // 8. Return success

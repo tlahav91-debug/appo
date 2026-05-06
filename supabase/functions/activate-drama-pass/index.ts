@@ -40,6 +40,47 @@ Deno.serve(async (req: Request) => {
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
   const userId = user.id;
 
+  // Platform-specific receipt verification
+  if (platform === "ios") {
+    const appleIapSecret = Deno.env.get("APPLE_IAP_SECRET") ?? Deno.env.get("APPLE_SHARED_SECRET");
+    if (!appleIapSecret) {
+      return json({ error: "Apple IAP secret not configured" }, 500);
+    }
+
+    const isProduction = Deno.env.get("APPLE_IAP_ENV") === "production";
+    const appleUrl = isProduction
+      ? "https://buy.itunes.apple.com/verifyReceipt"
+      : "https://sandbox.itunes.apple.com/verifyReceipt";
+
+    let appleRes: Response;
+    try {
+      appleRes = await fetch(appleUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          "receipt-data": receipt_data,
+          "password": appleIapSecret,
+        }),
+      });
+    } catch (_err) {
+      return json({ error: "Failed to reach Apple verification endpoint" }, 502);
+    }
+
+    let appleBody: { status?: number };
+    try {
+      appleBody = await appleRes.json();
+    } catch {
+      return json({ error: "Invalid response from Apple" }, 502);
+    }
+
+    if (appleBody.status !== 0) {
+      return json({ error: `Apple receipt validation failed with status ${appleBody.status}` }, 400);
+    }
+  } else if (platform === "android") {
+    // TODO: Android validation requires Google service account credentials (not yet configured)
+    // Proceed without validation for now
+  }
+
   const serviceClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,

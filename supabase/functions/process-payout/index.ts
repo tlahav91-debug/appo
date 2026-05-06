@@ -26,6 +26,17 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   if (!payout) return json({ error: "Payout not found" }, 404);
+
+  if (payout.status === "processing") {
+    const stuckThreshold = new Date(Date.now() - 30 * 60 * 1000);
+    if (new Date(payout.updated_at) > stuckThreshold) {
+      return json({ error: "Payout already in progress" }, 409);
+    }
+    // Reset stuck payout and retry
+    await supabase.from("creator_payouts").update({ status: "pending" }).eq("id", payout_id);
+    payout.status = "pending";
+  }
+
   if (payout.status !== "pending") return json({ error: "Payout is not pending" }, 409);
 
   // Mark as processing

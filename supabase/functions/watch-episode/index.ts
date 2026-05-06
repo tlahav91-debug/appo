@@ -57,11 +57,32 @@ Deno.serve(async (req: Request) => {
   // Fetch episode
   const { data: episode } = await supabase
     .from("episodes")
-    .select("id, is_free, energy_cost")
+    .select("id, series_id, is_free, energy_cost")
     .eq("id", episode_id)
     .maybeSingle();
 
   if (!episode) return json({ error: "Episode not found" }, 404);
+
+  // VIP series gate: check if parent series requires Drama Pass
+  if (episode.series_id) {
+    const { data: series } = await supabase
+      .from("series")
+      .select("is_vip")
+      .eq("id", episode.series_id)
+      .maybeSingle();
+
+    if (series?.is_vip && !episode.is_free) {
+      const { data: passCheck } = await supabase
+        .from("profiles")
+        .select("drama_pass_active")
+        .eq("id", userId)
+        .single();
+
+      if (!passCheck?.drama_pass_active) {
+        return json({ code: "VIP_REQUIRED", message: "This episode requires Drama Pass" }, 403);
+      }
+    }
+  }
 
   // Fetch profile
   const { data: profile } = await supabase
