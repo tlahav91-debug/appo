@@ -16,12 +16,13 @@ Deno.serve(async (req: Request) => {
   if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
   const jwt = authHeader.slice(7);
 
-  let body: { episode_id?: string; choice_id?: string; request_id?: string };
+  // BUG-006 fix: request_id removed — idempotency is keyed on userId+episode+choice
+  let body: { episode_id?: string; choice_id?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON body" }, 400); }
 
-  const { episode_id, choice_id, request_id } = body;
-  if (!episode_id || !choice_id || !request_id) {
-    return json({ error: "episode_id, choice_id, and request_id are required" }, 400);
+  const { episode_id, choice_id } = body;
+  if (!episode_id || !choice_id) {
+    return json({ error: "episode_id and choice_id are required" }, 400);
   }
 
   const supabase = createClient(
@@ -32,6 +33,25 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
   if (authErr || !user) return json({ error: "Unauthorized" }, 401);
   const userId = user.id;
+
+  // BUG-001 fix: verify episode is unlocked, consistent with record-choice
+  const { data: episode } = await supabase
+    .from("episodes")
+    .select("id, is_free")
+    .eq("id", episode_id)
+    .maybeSingle();
+
+  if (!episode) return json({ error: "Episode not found" }, 404);
+
+  if (!episode.is_free) {
+    const { data: unlock } = await supabase
+      .from("episode_unlocks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("episode_id", episode_id)
+      .maybeSingle();
+    if (!unlock) return json({ error: "Episode not unlocked", code: "EPISODE_LOCKED" }, 403);
+  }
 
   // Fetch the choice to validate it is premium and get cost
   const { data: choice } = await supabase
@@ -96,17 +116,23 @@ Deno.serve(async (req: Request) => {
     if (ledgerErr.code === "23505") {
       return json({ choice_recorded: true, already_recorded: true, coins_spent: cost });
     }
-    // Refund on ledger failure
-    await supabase.from("profiles").update({ coins: profile.coins }).eq("id", userId);
+    // BUG-004 fix: atomic refund via RPC avoids clobbering concurrent coin grants
+    await supabase.rpc("increment_currency", { uid: userId, d_coins: cost, d_gems: 0 });
     return json({ error: "Failed to record choice" }, 500);
   }
 
-  // Record the choice selection — ignore duplicate (one choice per episode per user)
-  await supabase.from("user_episode_choices").insert({
+  // BUG-003 fix: handle user_episode_choices insert errors explicitly
+  const { error: choiceInsertErr } = await supabase.from("user_episode_choices").insert({
     user_id: userId,
     episode_id,
     choice_id,
-  }).then(() => {});
+  });
+
+  if (choiceInsertErr && choiceInsertErr.code !== "23505") {
+    // Non-duplicate insert failure — atomic refund and surface error
+    await supabase.rpc("increment_currency", { uid: userId, d_coins: cost, d_gems: 0 });
+    return json({ error: "Failed to record choice" }, 500);
+  }
 
   return json({ choice_recorded: true, already_recorded: false, coins_spent: cost });
 });

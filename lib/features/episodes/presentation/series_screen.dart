@@ -299,7 +299,7 @@ class _SeriesHeroHeader extends ConsumerWidget {
   }
 }
 
-class _EpisodeRow extends ConsumerWidget {
+class _EpisodeRow extends ConsumerStatefulWidget {
   final Episode episode;
   final bool isVipSeries;
   final bool isDramaPassActive;
@@ -312,7 +312,18 @@ class _EpisodeRow extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EpisodeRow> createState() => _EpisodeRowState();
+}
+
+class _EpisodeRowState extends ConsumerState<_EpisodeRow> {
+  bool _unlocking = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final episode = widget.episode;
+    final isVipSeries = widget.isVipSeries;
+    final isDramaPassActive = widget.isDramaPassActive;
+
     final unlockedAsync = ref.watch(episodeUnlockedProvider(episode.id));
     final isUnlocked = unlockedAsync.valueOrNull ?? false;
 
@@ -320,8 +331,6 @@ class _EpisodeRow extends ConsumerWidget {
     final epProgress = progressMap[episode.id];
     final isCompleted = epProgress?.completed ?? false;
 
-    // Show coin pill when episode has a cost, is not yet unlocked/completed,
-    // and the VIP gate is not in effect (VIP gate takes priority).
     final showCoinPill = episode.coinCost > 0 &&
         !isUnlocked &&
         !isCompleted &&
@@ -332,7 +341,7 @@ class _EpisodeRow extends ConsumerWidget {
       isUnlocked: isUnlocked,
       isCompleted: isCompleted,
       progressPct: epProgress?.progressPct ?? 0,
-      onTap: () => _handleTap(context, ref, isUnlocked),
+      onTap: () => _handleTap(context, isUnlocked),
     );
 
     if (!showCoinPill) return card;
@@ -346,29 +355,39 @@ class _EpisodeRow extends ConsumerWidget {
           bottom: 0,
           child: Center(
             child: GestureDetector(
-              onTap: () => _onCoinPillTap(context, ref),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: goldGrad,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '🪙 ${episode.coinCost}',
-                      style: GoogleFonts.nunito(
-                        color: textCol,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      'Unlock',
-                      style: GoogleFonts.sora(color: textCol, fontSize: 10),
-                    ),
-                  ],
+              onTap: _unlocking ? null : () => _onCoinPillTap(context),
+              child: AnimatedOpacity(
+                opacity: _unlocking ? 0.5 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: goldGrad,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: _unlocking
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: textCol),
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '🪙 ${episode.coinCost}',
+                              style: GoogleFonts.nunito(
+                                color: textCol,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              'Unlock',
+                              style: GoogleFonts.sora(color: textCol, fontSize: 10),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -414,9 +433,9 @@ class _EpisodeRow extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleTap(BuildContext context, WidgetRef ref, bool isUnlocked) async {
-    // VIP series gate — must have Drama Pass to unlock episodes
-    if (isVipSeries && !isDramaPassActive && !episode.isFree) {
+  Future<void> _handleTap(BuildContext context, bool isUnlocked) async {
+    final episode = widget.episode;
+    if (widget.isVipSeries && !widget.isDramaPassActive && !episode.isFree) {
       _showVipGate(context);
       return;
     }
@@ -429,7 +448,6 @@ class _EpisodeRow extends ConsumerWidget {
       return;
     }
 
-    // Attempt unlock
     final energy = ref.read(energyStateProvider);
     if (energy.current < episode.energyCost) {
       await EnergyGate.show(
@@ -474,21 +492,28 @@ class _EpisodeRow extends ConsumerWidget {
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
-  void _onCoinPillTap(BuildContext context, WidgetRef ref) {
+  void _onCoinPillTap(BuildContext context) {
+    if (_unlocking) return;
     final profile = ref.read(profileProvider).valueOrNull;
     final coins = profile?.coins ?? 0;
-    if (coins >= episode.coinCost) {
-      _coinUnlockDirect(context, ref);
+    if (coins >= widget.episode.coinCost) {
+      _coinUnlockDirect(context);
     } else {
       CoinRefillSheet.show(context, ref);
     }
   }
 
-  Future<void> _coinUnlockDirect(BuildContext context, WidgetRef ref) async {
+  Future<void> _coinUnlockDirect(BuildContext context) async {
+    if (_unlocking) return;
+    setState(() => _unlocking = true);
     final messenger = ScaffoldMessenger.of(context);
+    final episode = widget.episode;
     try {
       final session = Supabase.instance.client.auth.currentSession;
-      if (session == null) return;
+      if (session == null) {
+        setState(() => _unlocking = false);
+        return;
+      }
       final requestId = '${episode.id}:${DateTime.now().millisecondsSinceEpoch}';
       final res = await Supabase.instance.client.functions.invoke(
         'unlock-episode-coins',
@@ -518,6 +543,8 @@ class _EpisodeRow extends ConsumerWidget {
       if (context.mounted) {
         messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
       }
+    } finally {
+      if (mounted) setState(() => _unlocking = false);
     }
   }
 }

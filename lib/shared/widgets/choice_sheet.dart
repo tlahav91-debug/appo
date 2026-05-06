@@ -72,14 +72,12 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
         setState(() { _loadingChoiceId = null; });
         return;
       }
-      final requestId = '${choice.id}:${DateTime.now().millisecondsSinceEpoch}';
       final res = await Supabase.instance.client.functions.invoke(
         'record-premium-choice',
         headers: {'Authorization': 'Bearer ${session.accessToken}'},
         body: {
           'episode_id': widget.episodeId,
           'choice_id': choice.id,
-          'request_id': requestId,
         },
       );
       if (!mounted) return;
@@ -92,6 +90,8 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
           'coins_spent': data['coins_spent'],
         });
         Navigator.pop(context);
+      } else {
+        setState(() { _feedback = 'Something went wrong. Please try again.'; _loadingChoiceId = null; });
       }
     } on FunctionException catch (fe) {
       if (!mounted) return;

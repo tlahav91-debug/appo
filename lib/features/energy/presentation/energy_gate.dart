@@ -294,7 +294,7 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                                   style: GoogleFonts.sora(
                                     color: textCol,
                                     fontSize: 11,
-                                  ).copyWith(color: textCol.withOpacity(0.85)),
+                                  ).copyWith(color: textCol.withValues(alpha: 0.85)),
                                 ),
                               ],
                             ),
