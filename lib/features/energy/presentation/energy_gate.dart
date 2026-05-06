@@ -44,52 +44,9 @@ class EnergyGate extends ConsumerStatefulWidget {
 }
 
 class _EnergyGateState extends ConsumerState<EnergyGate> {
-  bool _adLoading = false;
   bool _gemLoading = false;
   bool _coinLoading = false;
   String? _feedback;
-
-  Future<void> _claimAdReward() async {
-    setState(() { _adLoading = true; _feedback = null; });
-
-    final adService = ref.read(adServiceProvider);
-    final adResult = await adService.showAd();
-
-    if (!mounted) return;
-
-    if (adResult == AdShowResult.dismissed) {
-      setState(() {
-        _feedback = 'Watch the full ad to earn energy.';
-        _adLoading = false;
-      });
-      return;
-    }
-
-    if (adResult != AdShowResult.rewarded) {
-      setState(() {
-        _feedback = 'Ad not available right now. Try again later.';
-        _adLoading = false;
-      });
-      return;
-    }
-
-    // Ad fully watched — credit server-side
-    final service = ref.read(watchEpisodeServiceProvider);
-    final result = await service.claimAdReward(rewardType: 'energy');
-    if (!mounted) return;
-
-    if (result.success) {
-      ref.invalidate(profileProvider);
-      setState(() => _feedback = '+2 energy earned!');
-      await Future.delayed(const Duration(milliseconds: 700));
-      if (mounted) Navigator.pop(context);
-    } else {
-      setState(() => _feedback = result.error == AdRewardError.capReached
-          ? 'You\'ve claimed all 5 free ads for today.'
-          : 'Reward failed. Please try again.');
-    }
-    if (mounted) setState(() => _adLoading = false);
-  }
 
   Future<void> _coinUnlock() async {
     final ep = widget.episode;
@@ -155,7 +112,6 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
   @override
   Widget build(BuildContext context) {
     final energy = ref.watch(energyStateProvider);
-    final adReady = ref.watch(adServiceProvider).isReady;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -213,30 +169,7 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                 const EnergyTimer(),
                 const Divider(color: border, height: 32),
 
-                // Option 1 — Watch Ad
-                GBtn(
-                  gradient: adReady ? greenGrad : darkGrad,
-                  width: double.infinity,
-                  onPressed: (_adLoading || !adReady) ? null : _claimAdReward,
-                  child: _adLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: textCol),
-                        )
-                      : Text(
-                          adReady ? 'Watch an Ad · Get 2 ⚡ free' : 'Ad loading…',
-                          style: GoogleFonts.nunito(
-                            color: textCol,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
-                        ),
-                ),
-                const SizedBox(height: 10),
-
-                // Option 2 — Gem Refill
+                // Option 1 — Gem Refill
                 GBtn(
                   gradient: purpleGrad,
                   width: double.infinity,
@@ -380,6 +313,7 @@ class _AdButton extends ConsumerWidget {
         if (earned) {
           ref.invalidate(energyStateProvider);
           ref.invalidate(adEnergyCapProvider);
+          ref.invalidate(profileProvider);
           onDismiss();
         }
       },

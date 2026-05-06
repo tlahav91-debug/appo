@@ -183,6 +183,16 @@ class _ClaimButtonState extends ConsumerState<_ClaimButton> {
           const SnackBar(content: Text('Already claimed.')),
         );
       }
+    } on FunctionException catch (fe) {
+      if (mounted) {
+        final body = fe.details;
+        String msg = 'Claim failed. Please try again.';
+        if (body is Map) {
+          msg = (body['error'] as String?) ?? msg;
+        }
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

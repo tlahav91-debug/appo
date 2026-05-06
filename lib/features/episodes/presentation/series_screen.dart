@@ -23,6 +23,7 @@ import '../../collectibles/application/album_provider.dart';
 import 'episode_card.dart';
 import '../application/episode_progress_provider.dart';
 import '../application/series_rating_provider.dart';
+import '../../profile/application/profile_provider.dart';
 
 class SeriesScreen extends ConsumerWidget {
   final String seriesId;
@@ -80,6 +81,10 @@ class _EpisodeList extends ConsumerWidget {
     final hasCharacters =
         ref.watch(seriesHasCharactersProvider(seriesId)).valueOrNull ?? false;
 
+    final profileAsync = ref.watch(profileProvider);
+    final isDramaPassActive = profileAsync.valueOrNull?.dramaPassActive ?? false;
+    final isVipSeries = seriesDetail?.isVip ?? false;
+
     // Collectibles counts for Album chip
     final collectiblesAsync = ref.watch(seriesCollectiblesProvider(seriesId));
     final ownedAsync = ref.watch(ownedCollectibleIdsProvider);
@@ -123,7 +128,11 @@ class _EpisodeList extends ConsumerWidget {
                 cursor++;
               }
               final episode = episodes[index - bannerCount];
-              return _EpisodeRow(episode: episode);
+              return _EpisodeRow(
+                episode: episode,
+                isVipSeries: isVipSeries,
+                isDramaPassActive: isDramaPassActive,
+              );
             },
             childCount: episodes.length + bannerCount,
           ),
@@ -289,8 +298,15 @@ class _SeriesHeroHeader extends ConsumerWidget {
 
 class _EpisodeRow extends ConsumerWidget {
   final Episode episode;
+  final bool isVipSeries;
+  final bool isDramaPassActive;
 
-  const _EpisodeRow({super.key, required this.episode});
+  const _EpisodeRow({
+    super.key,
+    required this.episode,
+    required this.isVipSeries,
+    required this.isDramaPassActive,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -309,7 +325,34 @@ class _EpisodeRow extends ConsumerWidget {
     );
   }
 
+  void _showVipGate(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: surface,
+        title: Text('VIP Series', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Text(
+          'This series is exclusive to Drama Pass subscribers.',
+          style: GoogleFonts.sora(color: textSec, fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Later', style: GoogleFonts.sora(color: textDim))),
+          TextButton(
+            onPressed: () { Navigator.pop(context); context.push('/pass'); },
+            child: Text('Get Drama Pass', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleTap(BuildContext context, WidgetRef ref, bool isUnlocked) async {
+    // VIP series gate — must have Drama Pass to unlock episodes
+    if (isVipSeries && !isDramaPassActive && !episode.isFree) {
+      _showVipGate(context);
+      return;
+    }
+
     final accessible = episode.isFree || isUnlocked;
 
     if (accessible) {

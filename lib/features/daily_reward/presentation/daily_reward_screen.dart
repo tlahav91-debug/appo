@@ -40,7 +40,10 @@ class _DailyRewardScreenState extends ConsumerState<DailyRewardScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final session = Supabase.instance.client.auth.currentSession;
-      if (session == null) return;
+      if (session == null) {
+        setState(() => _claiming = false);
+        return;
+      }
       final res = await Supabase.instance.client.functions.invoke(
         'claim-daily-reward',
         headers: {'Authorization': 'Bearer ${session.accessToken}'},
@@ -79,6 +82,16 @@ class _DailyRewardScreenState extends ConsumerState<DailyRewardScreen> {
             xpForNextLevel: nextMatch.isNotEmpty ? nextMatch.first.xpRequired : null,
           );
         }
+      }
+    } on FunctionException catch (fe) {
+      if (mounted) {
+        final body = fe.details;
+        String msg = 'Claim failed. Please try again.';
+        if (body is Map) {
+          msg = (body['error'] as String?) ?? msg;
+        }
+        messenger.showSnackBar(SnackBar(content: Text(msg)));
+        setState(() => _claiming = false);
       }
     } catch (e) {
       if (mounted) {

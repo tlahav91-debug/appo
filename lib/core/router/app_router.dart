@@ -43,6 +43,7 @@ import '../../features/qa/presentation/qa_session_screen.dart';
 import '../../features/admin/presentation/admin_moderation_screen.dart';
 import '../../features/daily_reward/presentation/daily_reward_screen.dart';
 import '../../features/profile/presentation/fan_profile_screen.dart';
+import '../../features/profile/application/profile_provider.dart';
 import 'app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -188,6 +189,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin/moderation',
+        redirect: (context, state) {
+          final profile = ref.read(profileProvider).valueOrNull;
+          if (profile == null || !profile.isAdmin) return '/';
+          return null;
+        },
         builder: (_, __) => const AdminModerationScreen(),
       ),
       GoRoute(

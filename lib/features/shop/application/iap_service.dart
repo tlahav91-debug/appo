@@ -43,12 +43,16 @@ class IAPService {
           p.status == PurchaseStatus.restored) {
         if (p.productID == 'drama_starter_pack') {
           await _grantStarterPack(p);
+          await _iap.completePurchase(p);
         } else if (p.productID == 'drama_pass_monthly') {
           await _activateDramaPass(p);
+          await _iap.completePurchase(p);
         } else {
-          await _validate(p);
+          final validated = await _validate(p);
+          if (validated) {
+            await _iap.completePurchase(p);
+          }
         }
-        await _iap.completePurchase(p);
       } else if (p.status == PurchaseStatus.error ||
                  p.status == PurchaseStatus.cancelled) {
         if (p.productID == 'drama_pass_monthly') {
@@ -79,7 +83,7 @@ class IAPService {
     }
   }
 
-  Future<void> _validate(PurchaseDetails p) async {
+  Future<bool> _validate(PurchaseDetails p) async {
     lastValidationError = null;
     try {
       final receiptData = Platform.isIOS
@@ -94,8 +98,13 @@ class IAPService {
           'transaction_id': p.purchaseID ?? p.productID,
         },
       );
+      return true;
+    } on FunctionException catch (fe) {
+      lastValidationError = fe.details?.toString() ?? fe.toString();
+      return false;
     } catch (e) {
       lastValidationError = e.toString();
+      return false;
     }
   }
 
@@ -161,7 +170,11 @@ class IAPService {
       orElse: () => throw Exception('Product not found'),
     );
     final param = PurchaseParam(productDetails: product);
-    await _iap.buyConsumable(purchaseParam: param);
+    if (productId == 'drama_pass_monthly') {
+      await _iap.buySubscription(purchaseParam: param);
+    } else {
+      await _iap.buyConsumable(purchaseParam: param);
+    }
   }
 
   Future<void> restore() async => _iap.restorePurchases();
