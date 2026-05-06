@@ -3,9 +3,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PRODUCT_GEM_MAP: Record<string, number> = {
-  gems_80:   80,
-  gems_500:  500,
-  gems_1500: 1500,
+  drama_gems_100:  100,
+  drama_gems_500:  500,
+  drama_gems_1500: 1500,
 };
 
 function json(body: unknown, status = 200): Response {

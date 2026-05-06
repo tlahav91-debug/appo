@@ -16,9 +16,9 @@ class _Pack {
 }
 
 const _packs = [
-  _Pack('gems_80',   '80 💎',   'Starter Pack', cyanGrad),
-  _Pack('gems_500',  '500 💎',  'Popular Pack', pinkFull),
-  _Pack('gems_1500', '1500 💎', 'Best Value',   goldGrad),
+  _Pack('drama_gems_100',  '100 💎',  'Starter Pack', cyanGrad),
+  _Pack('drama_gems_500',  '500 💎',  'Popular Pack', pinkFull),
+  _Pack('drama_gems_1500', '1500 💎', 'Best Value',   goldGrad),
 ];
 
 class GemStoreScreen extends ConsumerWidget {

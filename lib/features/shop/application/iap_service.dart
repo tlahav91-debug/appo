@@ -4,7 +4,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/gem_pack.dart' as domain;
 
-const _kProductIds = {'gems_80', 'gems_500', 'gems_1500', 'drama_starter_pack', 'drama_pass_monthly'};
+const _kProductIds = {'drama_gems_100', 'drama_gems_500', 'drama_gems_1500', 'drama_starter_pack', 'drama_pass_monthly'};
 
 class IAPService {
   final _iap = InAppPurchase.instance;

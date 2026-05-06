@@ -5,8 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const GEM_PACKS: Record<string, number> = {
   "drama_gems_100":  100,
   "drama_gems_500":  500,
-  "drama_gems_1200": 1200,
-  "drama_gems_3000": 3000,
+  "drama_gems_1500": 1500,
 };
 
 const DRAMA_PASS_PRODUCT   = "drama_pass_monthly";
