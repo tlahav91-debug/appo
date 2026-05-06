@@ -1,9 +1,9 @@
-// [EDGE-FN] grant-starter-pack — validates drama_starter_pack IAP receipt, grants 500 gems + 1000 coins
+// [EDGE-FN] grant-starter-pack — validates drama_starter_pack IAP receipt, grants 500 gems + 200 coins
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GEMS_REWARD = 500;
-const COINS_REWARD = 1000;
+const COINS_REWARD = 200;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

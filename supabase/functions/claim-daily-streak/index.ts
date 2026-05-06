@@ -15,7 +15,7 @@ const STREAK_REWARDS: { coins: number; gems: number }[] = [
   { coins: 75,  gems: 0  }, // Day 4
   { coins: 100, gems: 5  }, // Day 5
   { coins: 150, gems: 0  }, // Day 6
-  { coins: 300, gems: 10 }, // Day 7
+  { coins: 75,  gems: 10 }, // Day 7
 ];
 
 serve(async (req) => {

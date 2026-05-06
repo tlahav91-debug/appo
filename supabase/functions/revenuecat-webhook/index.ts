@@ -11,7 +11,7 @@ const GEM_PACKS: Record<string, number> = {
 const DRAMA_PASS_PRODUCT   = "drama_pass_monthly";
 const STARTER_PACK_PRODUCT = "drama_starter_pack";
 const STARTER_PACK_GEMS    = 500;
-const STARTER_PACK_COINS   = 1000;
+const STARTER_PACK_COINS   = 200;
 
 const GEM_CREDIT_EVENTS      = new Set(["INITIAL_PURCHASE", "NON_SUBSCRIPTION_PURCHASE"]);
 const PASS_ACTIVATE_EVENTS   = new Set(["INITIAL_PURCHASE", "RENEWAL"]);

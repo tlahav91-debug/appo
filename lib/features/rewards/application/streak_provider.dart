@@ -37,7 +37,7 @@ const streakRewards = [
   (coins: 75,  gems: 0),
   (coins: 100, gems: 5),
   (coins: 150, gems: 0),
-  (coins: 300, gems: 10),
+  (coins: 75,  gems: 10),
 ];
 
 final streakStatusProvider = FutureProvider<StreakStatus>((ref) async {

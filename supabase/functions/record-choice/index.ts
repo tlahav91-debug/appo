@@ -2,7 +2,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const DEFAULT_COIN_REWARD = 10;
+const DEFAULT_COIN_REWARD = 5;
 const XP_PER_EPISODE = 10;
 
 Deno.serve(async (req: Request) => {
