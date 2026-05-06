@@ -157,9 +157,11 @@ class EpisodeCard extends StatelessWidget {
           const Icon(Icons.lock_outline, color: textDim, size: 12),
           const SizedBox(width: 3),
           Text(
-            '${episode.energyCost}⚡',
+            episode.coinCost > 0
+                ? '${episode.coinCost}🪙'
+                : '${episode.energyCost}⚡',
             style: GoogleFonts.nunito(
-              color: textSec,
+              color: episode.coinCost > 0 ? gold : textSec,
               fontWeight: FontWeight.w700,
               fontSize: 11,
             ),

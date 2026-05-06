@@ -316,7 +316,11 @@ class _EpisodeRow extends ConsumerWidget {
     // Attempt unlock
     final energy = ref.read(energyStateProvider);
     if (energy.current < episode.energyCost) {
-      await EnergyGate.show(context, currentEnergy: energy.current);
+      await EnergyGate.show(
+        context,
+        currentEnergy: energy.current,
+        episode: episode.coinCost > 0 ? episode : null,
+      );
       return;
     }
 
@@ -330,7 +334,11 @@ class _EpisodeRow extends ConsumerWidget {
       context.push('/series/${episode.seriesId}/episode/${episode.id}',
           extra: episode);
     } else if (result.status == WatchResultStatus.insufficientEnergy) {
-      await EnergyGate.show(context, currentEnergy: result.currentEnergy ?? 0);
+      await EnergyGate.show(
+        context,
+        currentEnergy: result.currentEnergy ?? 0,
+        episode: episode.coinCost > 0 ? episode : null,
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

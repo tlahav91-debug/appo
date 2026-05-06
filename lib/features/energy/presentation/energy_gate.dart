@@ -2,20 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/g_btn.dart';
 import '../../../shared/widgets/energy_timer.dart';
 import '../../ads/application/ad_provider.dart';
+import '../../episodes/application/episode_progress_provider.dart';
+import '../../episodes/domain/episode.dart';
 import '../../profile/application/profile_provider.dart';
 import '../application/energy_provider.dart';
 import '../data/watch_episode_service.dart';
 
 class EnergyGate extends ConsumerStatefulWidget {
   final int currentEnergy;
+  final Episode? episode;
 
-  const EnergyGate({super.key, required this.currentEnergy});
+  const EnergyGate({super.key, required this.currentEnergy, this.episode});
 
-  static Future<void> show(BuildContext context, {required int currentEnergy}) {
+  static Future<void> show(
+    BuildContext context, {
+    required int currentEnergy,
+    Episode? episode,
+  }) {
     return showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -26,7 +34,8 @@ class EnergyGate extends ConsumerStatefulWidget {
         scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
         child: FadeTransition(opacity: anim, child: child),
       ),
-      pageBuilder: (ctx, _, __) => EnergyGate(currentEnergy: currentEnergy),
+      pageBuilder: (ctx, _, __) =>
+          EnergyGate(currentEnergy: currentEnergy, episode: episode),
     );
   }
 
@@ -37,6 +46,7 @@ class EnergyGate extends ConsumerStatefulWidget {
 class _EnergyGateState extends ConsumerState<EnergyGate> {
   bool _adLoading = false;
   bool _gemLoading = false;
+  bool _coinLoading = false;
   String? _feedback;
 
   Future<void> _claimAdReward() async {
@@ -79,6 +89,40 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
           : 'Reward failed. Please try again.');
     }
     if (mounted) setState(() => _adLoading = false);
+  }
+
+  Future<void> _coinUnlock() async {
+    final ep = widget.episode;
+    if (ep == null) return;
+    setState(() { _coinLoading = true; _feedback = null; });
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) { setState(() => _coinLoading = false); return; }
+      final requestId = '${ep.id}:${DateTime.now().millisecondsSinceEpoch}';
+      final res = await Supabase.instance.client.functions.invoke(
+        'unlock-episode-coins',
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+        body: {'episode_id': ep.id, 'request_id': requestId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (!mounted) return;
+      if (data['unlocked'] == true) {
+        ref.invalidate(episodeUnlockedProvider(ep.id));
+        ref.invalidate(profileProvider);
+        final router = GoRouter.of(context);
+        Navigator.pop(context);
+        router.push('/series/${ep.seriesId}/episode/${ep.id}', extra: ep);
+      } else if (data['code'] == 'INSUFFICIENT_COINS') {
+        setState(() {
+          _feedback = 'Not enough coins (need ${data['required']} 🪙).';
+          _coinLoading = false;
+        });
+      } else {
+        setState(() { _feedback = 'Unlock failed. Try again.'; _coinLoading = false; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _feedback = 'Error: $e'; _coinLoading = false; });
+    }
   }
 
   Future<void> _claimGemRefill() async {
@@ -207,9 +251,34 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                 ),
                 const SizedBox(height: 10),
 
-                // Option 3 — Get Gems
+                // Option 3 — Coin Unlock (only shown when episode has a coin cost)
+                if (widget.episode != null && widget.episode!.coinCost > 0) ...[
+                  GBtn(
+                    gradient: goldGrad,
+                    width: double.infinity,
+                    onPressed: _coinLoading ? null : _coinUnlock,
+                    child: _coinLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: textCol),
+                          )
+                        : Text(
+                            'Unlock for 🪙 ${widget.episode!.coinCost} coins',
+                            style: GoogleFonts.nunito(
+                              color: textCol,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+
+                // Option 4 — Get Gems
                 GBtn(
-                  gradient: goldGrad,
+                  gradient: darkGrad,
                   width: double.infinity,
                   onPressed: () {
                     final router = GoRouter.of(context);

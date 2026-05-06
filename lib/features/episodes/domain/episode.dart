@@ -5,6 +5,7 @@ class Episode {
   final int episodeNumber;
   final bool isFree;
   final int energyCost;
+  final int coinCost;
   final String? thumbnailUrl;
   final String? synopsis;
 
@@ -15,6 +16,7 @@ class Episode {
     required this.episodeNumber,
     required this.isFree,
     required this.energyCost,
+    this.coinCost = 0,
     this.thumbnailUrl,
     this.synopsis,
   });
@@ -26,6 +28,7 @@ class Episode {
         episodeNumber: (j['episode_number'] as num).toInt(),
         isFree: j['is_free'] as bool? ?? false,
         energyCost: (j['energy_cost'] as num?)?.toInt() ?? 5,
+        coinCost: (j['coin_cost'] as num?)?.toInt() ?? 0,
         thumbnailUrl: j['thumbnail_url'] as String?,
         synopsis: j['synopsis'] as String?,
       );
