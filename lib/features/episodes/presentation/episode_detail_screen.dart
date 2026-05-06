@@ -704,6 +704,42 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
                   },
                   child: Text('Back to Home', style: GoogleFonts.sora(color: textDim, fontSize: 14)),
                 ),
+                // Drama Pass 2× XP teaser — only for non-subscribers with meaningful XP grants
+                if (!_dramaPassBonus && _xpGranted >= 50) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderHi),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'With Drama Pass: +${_xpGranted * 2} XP (2×)',
+                            style: GoogleFonts.sora(color: textSec, fontSize: 12),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push('/pass');
+                          },
+                          child: Text(
+                            'Upgrade →',
+                            style: GoogleFonts.nunito(
+                              color: gold,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

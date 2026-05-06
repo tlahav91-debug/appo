@@ -260,13 +260,58 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
                   ),
                 ],
 
-                // Drama Pass promo
-                const SizedBox(height: 8),
-                Text(
-                  'Drama Pass members get +5 energy daily',
-                  style: GoogleFonts.sora(color: textDim, fontSize: 11),
-                  textAlign: TextAlign.center,
-                ),
+                // Drama Pass upsell — hidden for subscribers
+                if (!(ref.watch(profileProvider).valueOrNull?.dramaPassActive ?? false)) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () {
+                      final router = GoRouter.of(context);
+                      Navigator.pop(context);
+                      router.push('/pass');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: purpleGrad,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Drama Pass',
+                                  style: GoogleFonts.nunito(
+                                    color: textCol,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  '+5⚡ daily · 2× XP · VIP series',
+                                  style: GoogleFonts.sora(
+                                    color: textCol,
+                                    fontSize: 11,
+                                  ).copyWith(color: textCol.withOpacity(0.85)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            'Try Now →',
+                            style: GoogleFonts.nunito(
+                              color: gold,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

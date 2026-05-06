@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:posthog_flutter/posthog_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/utils/share_utils.dart';
+import '../../../shared/widgets/g_btn.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../energy/presentation/energy_gate.dart';
 import '../../energy/application/energy_provider.dart';
@@ -337,9 +338,24 @@ class _EpisodeRow extends ConsumerWidget {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Later', style: GoogleFonts.sora(color: textDim))),
-          TextButton(
-            onPressed: () { Navigator.pop(context); context.push('/pass'); },
-            child: Text('Get Drama Pass', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: GBtn(
+              gradient: goldGrad,
+              width: double.infinity,
+              onPressed: () {
+                Navigator.pop(context);
+                context.push('/pass');
+              },
+              child: Text(
+                'Unlock with Drama Pass →',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
           ),
         ],
       ),
