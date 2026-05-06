@@ -197,6 +197,8 @@ Deno.serve(async (req: Request) => {
         p_amount: XP_PER_EPISODE,
         p_source: "episode_watched",
       }),
+      supabase.rpc("increment_choice_vote", { p_choice_id: choice_id })
+        .catch((e) => console.error("increment_choice_vote failed:", e)),
     ]);
 
     // Capture XP result (last in the allSettled array)

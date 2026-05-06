@@ -44,10 +44,37 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
   String? _feedback;
   late final String _idempotencyKey;
 
+  // Results state — non-null means show results view
+  Map<String, int>? _voteData;
+  String? _selectedChoiceId;
+  int _coinsEarned = 0;
+  bool _resultCollectibleGranted = false;
+  String? _resultCollectibleName;
+
   @override
   void initState() {
     super.initState();
     _idempotencyKey = ref.read(choiceServiceProvider).generateIdempotencyKey();
+  }
+
+  Future<Map<String, int>> _fetchVoteCounts() async {
+    final ids = widget.choices.map((c) => c.id).toList();
+    try {
+      final data = await Supabase.instance.client
+          .from('choice_vote_counts')
+          .select('choice_id, vote_count')
+          .inFilter('choice_id', ids);
+      final map = <String, int>{};
+      for (final row in data as List) {
+        map[row['choice_id'] as String] = (row['vote_count'] as num).toInt();
+      }
+      for (final c in widget.choices) {
+        map.putIfAbsent(c.id, () => 0);
+      }
+      return map;
+    } catch (_) {
+      return {for (final c in widget.choices) c.id: 0};
+    }
   }
 
   Future<void> _onPremiumChoiceTap(EpisodeChoice choice) async {
@@ -89,7 +116,14 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
           'choice_id': choice.id,
           'coins_spent': data['coins_spent'],
         });
-        Navigator.pop(context);
+        final counts = await _fetchVoteCounts();
+        if (!mounted) return;
+        setState(() {
+          _voteData = counts;
+          _selectedChoiceId = choice.id;
+          _coinsEarned = 0;
+          _loadingChoiceId = null;
+        });
       } else {
         setState(() { _feedback = 'Something went wrong. Please try again.'; _loadingChoiceId = null; });
       }
@@ -159,22 +193,36 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
         if (!mounted) return;
       }
 
-      Navigator.pop(context);
-      CoinToast.show(context, result.coinsEarned);
-      if (result.collectibleGranted && choice.collectibleName != null) {
-        // Slight delay so coin toast appears first
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (context.mounted) {
-            CollectibleToast.show(context, choice.collectibleName!);
-          }
-        });
-      }
+      final counts = await _fetchVoteCounts();
+      if (!mounted) return;
+
+      setState(() {
+        _voteData = counts;
+        _selectedChoiceId = choice.id;
+        _coinsEarned = result.coinsEarned;
+        _resultCollectibleGranted = result.collectibleGranted;
+        _resultCollectibleName = choice.collectibleName;
+        _loadingChoiceId = null;
+      });
     } else {
       setState(() {
         _feedback = result.errorCode == 'EPISODE_LOCKED'
             ? 'Episode is not unlocked.'
             : 'Something went wrong. Please try again.';
         _loadingChoiceId = null;
+      });
+    }
+  }
+
+  void _closeResults() {
+    final coinsEarned = _coinsEarned;
+    final collectibleGranted = _resultCollectibleGranted;
+    final collectibleName = _resultCollectibleName;
+    Navigator.pop(context);
+    if (coinsEarned > 0) CoinToast.show(context, coinsEarned);
+    if (collectibleGranted && collectibleName != null) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (context.mounted) CollectibleToast.show(context, collectibleName);
       });
     }
   }
@@ -187,60 +235,229 @@ class _ChoiceSheetState extends ConsumerState<ChoiceSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: borderHi,
-              borderRadius: BorderRadius.circular(2),
-            ),
+      child: _voteData != null ? _buildResultsView() : _buildChoicesView(),
+    );
+  }
+
+  Widget _buildChoicesView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: borderHi,
+            borderRadius: BorderRadius.circular(2),
           ),
-          const SizedBox(height: 20),
-          Text(
-            'Your Choice',
-            style: GoogleFonts.nunito(
-              color: textCol,
-              fontWeight: FontWeight.w900,
-              fontSize: 20,
-            ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Your Choice',
+          style: GoogleFonts.nunito(
+            color: textCol,
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
           ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'This choice cannot be undone.',
+          style: GoogleFonts.sora(color: textDim, fontSize: 12),
+        ),
+        const SizedBox(height: 20),
+        for (final choice in widget.choices.where((c) => c.isPremium)) ...[
+          _PremiumChoiceButton(
+            choice: choice,
+            isLoading: _loadingChoiceId == choice.id,
+            disabled: _loadingChoiceId != null,
+            onTap: () => _onPremiumChoiceTap(choice),
+          ),
+          const SizedBox(height: 10),
+        ],
+        for (final choice in widget.choices.where((c) => !c.isPremium)) ...[
+          _ChoiceButton(
+            choice: choice,
+            isLoading: _loadingChoiceId == choice.id,
+            disabled: _loadingChoiceId != null,
+            onTap: () => _onChoiceTap(choice),
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (_feedback != null) ...[
           const SizedBox(height: 4),
           Text(
-            'This choice cannot be undone.',
-            style: GoogleFonts.sora(color: textDim, fontSize: 12),
+            _feedback!,
+            style: GoogleFonts.sora(color: pink, fontSize: 12),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
-          for (final choice in widget.choices.where((c) => c.isPremium)) ...[
-            _PremiumChoiceButton(
-              choice: choice,
-              isLoading: _loadingChoiceId == choice.id,
-              disabled: _loadingChoiceId != null,
-              onTap: () => _onPremiumChoiceTap(choice),
-            ),
-            const SizedBox(height: 10),
-          ],
-          for (final choice in widget.choices.where((c) => !c.isPremium)) ...[
-            _ChoiceButton(
-              choice: choice,
-              isLoading: _loadingChoiceId == choice.id,
-              disabled: _loadingChoiceId != null,
-              onTap: () => _onChoiceTap(choice),
-            ),
-            const SizedBox(height: 10),
-          ],
-          if (_feedback != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              _feedback!,
-              style: GoogleFonts.sora(color: pink, fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ],
-      ),
+      ],
+    );
+  }
+
+  Widget _buildResultsView() {
+    final counts = _voteData!;
+    final total = counts.values.fold(0, (sum, v) => sum + v);
+    final allChoices = [
+      ...widget.choices.where((c) => c.isPremium),
+      ...widget.choices.where((c) => !c.isPremium),
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: borderHi,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Fan Vote Results',
+          style: GoogleFonts.nunito(
+            color: textCol,
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+          ),
+        ),
+        if (_coinsEarned > 0) ...[
+          const SizedBox(height: 4),
+          Text(
+            '+$_coinsEarned 🪙 earned',
+            style: GoogleFonts.nunito(
+              color: gold,
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        for (final choice in allChoices) ...[
+          _VoteResultRow(
+            choice: choice,
+            voteCount: counts[choice.id] ?? 0,
+            total: total,
+            isSelected: choice.id == _selectedChoiceId,
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (total > 0) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Based on ${_formatVoteCount(total)} votes',
+            style: GoogleFonts.sora(color: textDim, fontSize: 11),
+          ),
+        ],
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: _closeResults,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderHi),
+            ),
+            child: Center(
+              child: Text(
+                'Done',
+                style: GoogleFonts.nunito(
+                  color: textCol,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatVoteCount(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    return '$n';
+  }
+}
+
+class _VoteResultRow extends StatelessWidget {
+  final EpisodeChoice choice;
+  final int voteCount;
+  final int total;
+  final bool isSelected;
+
+  const _VoteResultRow({
+    required this.choice,
+    required this.voteCount,
+    required this.total,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total > 0 ? (voteCount / total * 100).round() : 0;
+    final fraction = total > 0 ? voteCount / total : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                choice.label,
+                style: GoogleFonts.nunito(
+                  color: isSelected ? textCol : textSec,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Text(
+              '$pct%',
+              style: GoogleFonts.nunito(
+                color: isSelected ? gold : textDim,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 4),
+              const Text('👑', style: TextStyle(fontSize: 12)),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
+        LayoutBuilder(
+          builder: (_, constraints) {
+            return Stack(
+              children: [
+                Container(
+                  height: 6,
+                  width: constraints.maxWidth,
+                  decoration: BoxDecoration(
+                    color: borderHi,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                Container(
+                  height: 6,
+                  width: constraints.maxWidth * fraction,
+                  decoration: BoxDecoration(
+                    gradient: isSelected ? goldGrad : pinkGrad,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }
