@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../features/achievements/application/achievements_provider.dart';
 import '../../../features/daily_reward/presentation/daily_reward_banner.dart';
+import '../../../features/events/presentation/marathon_banner.dart';
 import '../../../shared/widgets/hud.dart';
 import '../../../shared/widgets/stars.dart';
 import '../../club/application/club_provider.dart';
@@ -178,6 +179,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // 2b. Daily Reward Banner
                 // ----------------------------------------------------------------
                 const SliverToBoxAdapter(child: DailyRewardBanner()),
+
+                // ----------------------------------------------------------------
+                // 2c. Marathon Banner
+                // ----------------------------------------------------------------
+                const SliverToBoxAdapter(child: MarathonHomeBanner()),
 
                 // ----------------------------------------------------------------
                 // 3. Continue Watching Strip

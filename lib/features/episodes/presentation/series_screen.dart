@@ -15,6 +15,7 @@ import '../domain/episode.dart';
 import '../../energy/domain/watch_result.dart';
 import '../../affinity/application/affinity_provider.dart'
     show seriesHasCharactersProvider;
+import '../../events/presentation/marathon_banner.dart';
 import '../../race/application/race_provider.dart';
 import '../../race/domain/race.dart';
 import '../../creator/application/creator_provider.dart';
@@ -88,7 +89,7 @@ class _EpisodeList extends ConsumerWidget {
 
     // Number of pinned banners before episode rows
     final bannerCount =
-        (race != null ? 1 : 0) + (hasCharacters ? 1 : 0) + (showAlbum ? 1 : 0);
+        (race != null ? 1 : 0) + (hasCharacters ? 1 : 0) + (showAlbum ? 1 : 0) + 1;
 
     return CustomScrollView(
       slivers: [
@@ -99,6 +100,10 @@ class _EpisodeList extends ConsumerWidget {
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               int cursor = 0;
+              if (index == cursor) {
+                return MarathonSeriesBanner(seriesId: seriesId);
+              }
+              cursor++;
               if (race != null) {
                 if (index == cursor) return _RaceBanner(race: race);
                 cursor++;
