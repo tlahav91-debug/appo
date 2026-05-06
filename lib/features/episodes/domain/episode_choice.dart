@@ -6,6 +6,8 @@ class EpisodeChoice {
   final String? collectibleId;
   final String? collectibleName;
   final String? collectibleRarity;
+  final bool isPremium;
+  final int premiumCoinCost;
 
   const EpisodeChoice({
     required this.id,
@@ -15,6 +17,8 @@ class EpisodeChoice {
     this.collectibleId,
     this.collectibleName,
     this.collectibleRarity,
+    this.isPremium = false,
+    this.premiumCoinCost = 0,
   });
 
   factory EpisodeChoice.fromJson(Map<String, dynamic> j) {
@@ -27,6 +31,8 @@ class EpisodeChoice {
       collectibleId: j['collectible_id'] as String?,
       collectibleName: coll?['name'] as String?,
       collectibleRarity: coll?['rarity'] as String?,
+      isPremium: j['is_premium'] as bool? ?? false,
+      premiumCoinCost: (j['premium_coin_cost'] as num?)?.toInt() ?? 0,
     );
   }
 }
