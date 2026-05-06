@@ -24,6 +24,8 @@ import '../../collectibles/application/album_provider.dart';
 import 'episode_card.dart';
 import '../application/episode_progress_provider.dart';
 import '../application/series_rating_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/coin_refill_sheet.dart';
 import '../../profile/application/profile_provider.dart';
 
 class SeriesScreen extends ConsumerWidget {
@@ -316,13 +318,63 @@ class _EpisodeRow extends ConsumerWidget {
 
     final progressMap = ref.watch(seriesProgressProvider(episode.seriesId)).valueOrNull ?? {};
     final epProgress = progressMap[episode.id];
+    final isCompleted = epProgress?.completed ?? false;
 
-    return EpisodeCard(
+    // Show coin pill when episode has a cost, is not yet unlocked/completed,
+    // and the VIP gate is not in effect (VIP gate takes priority).
+    final showCoinPill = episode.coinCost > 0 &&
+        !isUnlocked &&
+        !isCompleted &&
+        !(isVipSeries && !isDramaPassActive);
+
+    final card = EpisodeCard(
       episode: episode,
       isUnlocked: isUnlocked,
-      isCompleted: epProgress?.completed ?? false,
+      isCompleted: isCompleted,
       progressPct: epProgress?.progressPct ?? 0,
       onTap: () => _handleTap(context, ref, isUnlocked),
+    );
+
+    if (!showCoinPill) return card;
+
+    return Stack(
+      children: [
+        card,
+        Positioned(
+          right: 16,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: GestureDetector(
+              onTap: () => _onCoinPillTap(context, ref),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: goldGrad,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '🪙 ${episode.coinCost}',
+                      style: GoogleFonts.nunito(
+                        color: textCol,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      'Unlock',
+                      style: GoogleFonts.sora(color: textCol, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -420,6 +472,53 @@ class _EpisodeRow extends ConsumerWidget {
     final rng = Random.secure();
     final bytes = List.generate(16, (_) => rng.nextInt(256));
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
+
+  void _onCoinPillTap(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(profileProvider).valueOrNull;
+    final coins = profile?.coins ?? 0;
+    if (coins >= episode.coinCost) {
+      _coinUnlockDirect(context, ref);
+    } else {
+      CoinRefillSheet.show(context, ref);
+    }
+  }
+
+  Future<void> _coinUnlockDirect(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+      final requestId = '${episode.id}:${DateTime.now().millisecondsSinceEpoch}';
+      final res = await Supabase.instance.client.functions.invoke(
+        'unlock-episode-coins',
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+        body: {'episode_id': episode.id, 'request_id': requestId},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (!context.mounted) return;
+      if (data['unlocked'] == true) {
+        ref.invalidate(episodeUnlockedProvider(episode.id));
+        ref.invalidate(profileProvider);
+        context.push('/series/${episode.seriesId}/episode/${episode.id}', extra: episode);
+      } else {
+        messenger.showSnackBar(const SnackBar(content: Text('Unlock failed. Try again.')));
+      }
+    } on FunctionException catch (fe) {
+      if (!context.mounted) return;
+      final body = fe.details;
+      if (fe.status == 402 && body is Map && body['code'] == 'INSUFFICIENT_COINS') {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Not enough coins (need ${body['required']} 🪙).')),
+        );
+      } else {
+        messenger.showSnackBar(const SnackBar(content: Text('Unlock failed. Try again.')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 }
 
