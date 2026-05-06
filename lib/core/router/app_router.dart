@@ -11,6 +11,7 @@ import '../../features/collectibles/presentation/album_screen.dart';
 import '../../features/events/presentation/lava_quest_screen.dart';
 import '../../features/profile/presentation/events_screen.dart';
 import '../../features/profile/presentation/journey_screen.dart';
+import '../../features/profile/presentation/level_perks_screen.dart';
 import '../../features/profile/presentation/leaderboard_screen.dart';
 import '../../features/profile/presentation/profile_edit_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
@@ -142,6 +143,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/journey',
         builder: (_, __) => const JourneyScreen(),
+      ),
+      GoRoute(
+        path: '/level-perks',
+        builder: (_, __) => const LevelPerksScreen(),
       ),
       GoRoute(
         path: '/leaderboard',

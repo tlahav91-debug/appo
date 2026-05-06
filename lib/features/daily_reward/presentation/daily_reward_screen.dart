@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../features/profile/application/profile_provider.dart';
+import '../../../features/profile/domain/fan_level.dart';
+import '../../../shared/widgets/level_up_dialog.dart';
 import '../application/daily_reward_provider.dart';
 
 class DailyRewardScreen extends ConsumerStatefulWidget {
@@ -49,6 +51,8 @@ class _DailyRewardScreenState extends ConsumerState<DailyRewardScreen> {
       final coins = (reward['coins'] as num?)?.toInt() ?? 0;
       final gems = (reward['gems'] as num?)?.toInt() ?? 0;
       final xp = (reward['xp'] as num?)?.toInt() ?? 0;
+      final leveledUp = data['leveled_up'] as bool? ?? false;
+      final newFanLevel = (data['new_fan_level'] as num?)?.toInt();
       ref.invalidate(dailyRewardProvider);
       ref.invalidate(profileProvider);
       if (mounted) {
@@ -59,6 +63,22 @@ class _DailyRewardScreenState extends ConsumerState<DailyRewardScreen> {
         ];
         messenger.showSnackBar(SnackBar(content: Text(parts.join('  '))));
         setState(() => _claiming = false);
+        if (leveledUp && newFanLevel != null && mounted) {
+          final thresholds =
+              ref.read(fanLevelThresholdsProvider).valueOrNull ?? <FanLevelThreshold>[];
+          final match = thresholds.where((t) => t.level == newFanLevel);
+          final label = match.isNotEmpty ? match.first.label : 'Lv.$newFanLevel';
+          final nextMatch = thresholds.where((t) => t.level == newFanLevel + 1);
+          final profile = ref.read(profileProvider).valueOrNull;
+          await LevelUpDialog.show(
+            context,
+            newLevel: newFanLevel,
+            levelLabel: label,
+            xpCurrent: profile?.xp,
+            xpForThisLevel: match.isNotEmpty ? match.first.xpRequired : null,
+            xpForNextLevel: nextMatch.isNotEmpty ? nextMatch.first.xpRequired : null,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

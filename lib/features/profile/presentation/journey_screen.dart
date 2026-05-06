@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/stars.dart';
@@ -72,6 +73,19 @@ class JourneyScreen extends ConsumerWidget {
                       xpToNext: fanLevel.xpToNextLevel,
                     );
                   },
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => context.push('/level-perks'),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'View all levels →',
+                        style: GoogleFonts.sora(color: pink, fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
 
