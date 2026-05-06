@@ -139,6 +139,7 @@ Deno.serve(async (req: Request) => {
 
   // Grant achievements: first_series (1st completion) and series_5 (5th completion)
   const achievementsGranted: string[] = [];
+  // Keep in sync with XP_REWARDS in grant-achievement/index.ts
   const achievementXp: Record<string, number> = { first_series: 50, series_5: 150 };
 
   const { count: completionCount, error: countErr } = await serviceClient

@@ -71,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.invalidate(activeQuestsProvider);
     ref.invalidate(newFromFollowingProvider);
     ref.invalidate(creatorSpotlightProvider);
+    ref.invalidate(seriesCompletionsProvider);
     await Future<void>.delayed(const Duration(milliseconds: 300));
   }
 

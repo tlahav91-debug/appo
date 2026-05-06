@@ -138,11 +138,39 @@ Deno.serve(async (req: Request) => {
     checked_in_at: new Date().toISOString(),
   });
 
+  // Grant streak achievements at 7 and 30 day thresholds
+  const newStreak = streak + 1;
+  const streakAchievements: Record<number, string> = { 7: "streak_7", 30: "streak_30" };
+  const streakAchievementXp: Record<string, number> = { streak_7: 30, streak_30: 100 };
+  for (const [threshold, key] of Object.entries(streakAchievements)) {
+    if (newStreak >= Number(threshold)) {
+      const { data: existing } = await serviceClient
+        .from("user_achievements")
+        .select("achievement_key")
+        .eq("user_id", userId)
+        .eq("achievement_key", key)
+        .maybeSingle();
+      if (!existing) {
+        const { error: achErr } = await serviceClient
+          .from("user_achievements")
+          .insert({ user_id: userId, achievement_key: key });
+        if (!achErr) {
+          await serviceClient.rpc("grant_xp", {
+            p_user_id: userId,
+            p_amount: streakAchievementXp[key],
+            p_source: "achievement",
+          });
+        }
+        // 23505 = concurrent insert already granted it — no action needed
+      }
+    }
+  }
+
   return json({
     claimed_today: true,
     cycle_day: cycleDay,
     reward,
-    streak: streak + 1,
+    streak: newStreak,
     already_claimed: false,
   });
 });

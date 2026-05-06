@@ -527,6 +527,7 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
   int _coinsGranted = 0;
   int _xpGranted = 0;
   bool _leveledUp = false;
+  List<String> _achievementsGranted = [];
 
   @override
   void initState() {
@@ -547,6 +548,9 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
           _coinsGranted = (data['coins_granted'] as num?)?.toInt() ?? 0;
           _xpGranted = (data['xp_granted'] as num?)?.toInt() ?? 0;
           _leveledUp = data['leveled_up'] as bool? ?? false;
+          _achievementsGranted = (data['achievements_granted'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ?? [];
           _rewardLoading = false;
         });
         if (!_alreadyClaimed) {
@@ -614,6 +618,29 @@ class _SeriesCompletionModalState extends ConsumerState<_SeriesCompletionModal> 
                   if (_leveledUp) ...[
                     const SizedBox(height: 8),
                     Text('🎉 Level Up!', style: GoogleFonts.nunito(color: pink, fontWeight: FontWeight.w900, fontSize: 18)),
+                  ],
+                  if (_achievementsGranted.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text('🏅 Badge Unlocked!', style: GoogleFonts.nunito(color: gold, fontWeight: FontWeight.w800, fontSize: 14)),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: _achievementsGranted.map((key) {
+                        final ach = kAllAchievements.firstWhere(
+                          (a) => a['key'] == key,
+                          orElse: () => {'key': key, 'name': key, 'icon': '🏅'},
+                        );
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Column(
+                            children: [
+                              Text(ach['icon']!, style: const TextStyle(fontSize: 28)),
+                              Text(ach['name']!, style: GoogleFonts.sora(color: textDim, fontSize: 10)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ],
                 const SizedBox(height: 24),
