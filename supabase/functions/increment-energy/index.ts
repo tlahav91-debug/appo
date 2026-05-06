@@ -1,8 +1,8 @@
-// [EDGE-FN] increment-energy — credits energy from a rewarded ad grant (max +5, capped at 10)
+// [EDGE-FN] increment-energy — credits energy from a rewarded ad grant (max +5, capped at 20)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const MAX_ENERGY = 10;
+const MAX_ENERGY = 20;
 const MAX_AD_GRANT = 5;
 
 Deno.serve(async (req: Request) => {

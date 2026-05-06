@@ -48,14 +48,40 @@ Deno.serve(async (req: Request) => {
   if (claimErr) return json({ error: "Claim failed — retry" }, 409);
   if (!claimData || claimData.length === 0) return json({ error: "Already claimed" }, 409);
 
-  // Credit rewards if any
-  if (item.reward_coins > 0 || item.reward_gems > 0) {
-    const { data: profile } = await admin.from("profiles").select("coins, gems").eq("id", user.id).single();
-    if (profile) {
-      await admin.from("profiles").update({
-        coins: (profile.coins ?? 0) + item.reward_coins,
-        gems: (profile.gems ?? 0) + item.reward_gems,
-      }).eq("id", user.id);
+  // Credit rewards atomically via increment_currency RPC
+  if (item.reward_coins > 0) {
+    const { error: coinsErr } = await admin.rpc("increment_currency", {
+      uid: user.id,
+      d_coins: item.reward_coins,
+      d_gems: 0,
+    });
+    if (coinsErr) console.error("increment_currency (coins) failed:", coinsErr.message);
+    else {
+      await admin.from("currency_ledger").insert({
+        user_id: user.id,
+        currency_type: "scrolls",
+        delta: item.reward_coins,
+        reason: "inbox_reward",
+        idempotency_key: `${user.id}:inbox_reward:${item_id}`,
+      });
+    }
+  }
+
+  if (item.reward_gems > 0) {
+    const { error: gemsErr } = await admin.rpc("increment_currency", {
+      uid: user.id,
+      d_coins: 0,
+      d_gems: item.reward_gems,
+    });
+    if (gemsErr) console.error("increment_currency (gems) failed:", gemsErr.message);
+    else {
+      await admin.from("currency_ledger").insert({
+        user_id: user.id,
+        currency_type: "gems",
+        delta: item.reward_gems,
+        reason: "inbox_reward",
+        idempotency_key: `${user.id}:inbox_reward:gems:${item_id}`,
+      });
     }
   }
 

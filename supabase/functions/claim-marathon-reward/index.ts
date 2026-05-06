@@ -93,29 +93,26 @@ Deno.serve(async (req: Request) => {
     return json({ granted: false, already_claimed: true });
   }
 
-  // Credit coins
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("coins")
-    .eq("id", userId)
-    .single();
-
-  if (profile) {
-    await supabase
-      .from("profiles")
-      .update({ coins: (profile.coins ?? 0) + marathon.reward_coins })
-      .eq("id", userId);
-
-    await supabase.from("currency_ledger").insert({
-      user_id: userId,
-      currency_type: "scrolls",
-      delta: marathon.reward_coins,
-      balance_after: (profile.coins ?? 0) + marathon.reward_coins,
-      reason: "marathon_reward",
-      reference_id: marathon_id,
-      idempotency_key: `${userId}:marathon:${marathon_id}`,
-    });
+  // Credit coins atomically via increment_currency RPC
+  const serviceClient = supabase;
+  const { error: coinsErr } = await serviceClient.rpc("increment_currency", {
+    uid: userId,
+    d_coins: marathon.reward_coins,
+    d_gems: 0,
+  });
+  if (coinsErr) {
+    console.error("increment_currency failed:", coinsErr.message);
+    return json({ error: "Failed to credit coins" }, 500);
   }
+
+  await serviceClient.from("currency_ledger").insert({
+    user_id: userId,
+    currency_type: "scrolls",
+    delta: marathon.reward_coins,
+    reason: "marathon_reward",
+    reference_id: marathon_id,
+    idempotency_key: `${userId}:marathon:${marathon_id}`,
+  });
 
   // Mint collectible reward if configured
   let collectibleGranted = false;

@@ -117,19 +117,43 @@ Deno.serve(async (req: Request) => {
     return json({ claimed_today: true, cycle_day: cycleDay, reward, streak, already_claimed: true });
   }
 
-  // Fetch current profile values for safe increment
-  const { data: profile, error: profileErr } = await serviceClient
-    .from("profiles")
-    .select("coins, gems, xp")
-    .eq("id", userId)
-    .single();
-  if (profileErr || !profile) return json({ error: "Failed to fetch profile" }, 500);
+  // Credit coins atomically via increment_currency RPC
+  if (reward.coins > 0) {
+    const { error: coinsErr } = await serviceClient.rpc("increment_currency", {
+      uid: userId,
+      d_coins: reward.coins,
+      d_gems: 0,
+    });
+    if (coinsErr) console.error("increment_currency (coins) failed:", coinsErr.message);
+    else {
+      await serviceClient.from("currency_ledger").insert({
+        user_id: userId,
+        currency_type: "scrolls",
+        delta: reward.coins,
+        reason: "daily_reward",
+        idempotency_key: `${userId}:daily_reward:${today}`,
+      });
+    }
+  }
 
-  // Credit coins + gems (no level-up logic)
-  await serviceClient.from("profiles").update({
-    coins: (profile.coins ?? 0) + reward.coins,
-    gems: (profile.gems ?? 0) + reward.gems,
-  }).eq("id", userId);
+  // Credit gems atomically via increment_currency RPC
+  if (reward.gems > 0) {
+    const { error: gemsErr } = await serviceClient.rpc("increment_currency", {
+      uid: userId,
+      d_coins: 0,
+      d_gems: reward.gems,
+    });
+    if (gemsErr) console.error("increment_currency (gems) failed:", gemsErr.message);
+    else {
+      await serviceClient.from("currency_ledger").insert({
+        user_id: userId,
+        currency_type: "gems",
+        delta: reward.gems,
+        reason: "daily_reward",
+        idempotency_key: `${userId}:daily_reward:gems:${today}`,
+      });
+    }
+  }
 
   // Credit XP via grant_xp RPC so fan_level recalculates atomically
   let leveledUp = false;
