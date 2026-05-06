@@ -41,7 +41,7 @@ class _CoinRefillSheetBodyState extends State<_CoinRefillSheetBody> {
   }
 
   Future<void> _checkCap() async {
-    final canWatch = await widget.ref.read(adEnergyCapProvider.future);
+    final canWatch = await widget.ref.read(adCoinCapProvider.future);
     if (mounted) setState(() => _capReached = !canWatch);
   }
 
@@ -59,13 +59,13 @@ class _CoinRefillSheetBodyState extends State<_CoinRefillSheetBody> {
             headers: {'Authorization': 'Bearer ${session.accessToken}'},
             body: {'reward_type': 'coins'},
           );
-          await recordAdGrant();
+          await recordCoinAdGrant();
           widget.ref.invalidate(profileProvider);
         },
       );
       if (rewarded && mounted) {
         Navigator.pop(context);
-        messenger.showSnackBar(const SnackBar(content: Text('+5 🪙 added')));
+        messenger.showSnackBar(const SnackBar(content: Text('+15 🪙 added')));
       } else if (!rewarded && mounted) {
         setState(() => _adLoading = false);
       }
@@ -157,7 +157,7 @@ class _CoinRefillSheetBodyState extends State<_CoinRefillSheetBody> {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          'Ad cap reached (3/3 today)',
+                          'Ad cap reached (2/2 today)',
                           style: GoogleFonts.sora(color: textDim, fontSize: 13),
                         ),
                       )

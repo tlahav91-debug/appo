@@ -307,7 +307,7 @@ class _AdButton extends ConsumerWidget {
             } catch (_) {
               // Energy grant failed — ad still watched, record cap to prevent re-show
             }
-            await recordAdGrant();
+            await recordEnergyAdGrant();
           },
         );
         if (earned) {
