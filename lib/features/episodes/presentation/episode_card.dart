@@ -156,16 +156,32 @@ class EpisodeCard extends StatelessWidget {
         children: [
           const Icon(Icons.lock_outline, color: textDim, size: 12),
           const SizedBox(width: 3),
-          Text(
-            episode.coinCost > 0
-                ? '${episode.coinCost}🪙'
-                : '${episode.energyCost}⚡',
-            style: GoogleFonts.nunito(
-              color: episode.coinCost > 0 ? gold : textSec,
-              fontWeight: FontWeight.w700,
-              fontSize: 11,
+          if (episode.coinCost > 0) ...[
+            Text(
+              '${episode.coinCost}🪙',
+              style: GoogleFonts.nunito(
+                color: gold,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
             ),
-          ),
+            Text(
+              ' · ${episode.energyCost}⚡',
+              style: GoogleFonts.nunito(
+                color: textSec,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ] else
+            Text(
+              '${episode.energyCost}⚡',
+              style: GoogleFonts.nunito(
+                color: textSec,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
         ],
       ),
     );

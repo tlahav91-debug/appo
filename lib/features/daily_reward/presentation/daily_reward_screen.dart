@@ -53,6 +53,7 @@ class _DailyRewardScreenState extends ConsumerState<DailyRewardScreen> {
       final xp = (reward['xp'] as num?)?.toInt() ?? 0;
       final leveledUp = data['leveled_up'] as bool? ?? false;
       final newFanLevel = (data['new_fan_level'] as num?)?.toInt();
+      final newXp = (data['new_xp'] as num?)?.toInt();
       ref.invalidate(dailyRewardProvider);
       ref.invalidate(profileProvider);
       if (mounted) {
@@ -69,12 +70,11 @@ class _DailyRewardScreenState extends ConsumerState<DailyRewardScreen> {
           final match = thresholds.where((t) => t.level == newFanLevel);
           final label = match.isNotEmpty ? match.first.label : 'Lv.$newFanLevel';
           final nextMatch = thresholds.where((t) => t.level == newFanLevel + 1);
-          final profile = ref.read(profileProvider).valueOrNull;
           await LevelUpDialog.show(
             context,
             newLevel: newFanLevel,
             levelLabel: label,
-            xpCurrent: profile?.xp,
+            xpCurrent: newXp,
             xpForThisLevel: match.isNotEmpty ? match.first.xpRequired : null,
             xpForNextLevel: nextMatch.isNotEmpty ? nextMatch.first.xpRequired : null,
           );

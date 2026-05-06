@@ -120,20 +120,21 @@ Deno.serve(async (req: Request) => {
   // Fetch current profile values for safe increment
   const { data: profile, error: profileErr } = await serviceClient
     .from("profiles")
-    .select("scrolls, gems, xp")
+    .select("coins, gems, xp")
     .eq("id", userId)
     .single();
   if (profileErr || !profile) return json({ error: "Failed to fetch profile" }, 500);
 
   // Credit coins + gems (no level-up logic)
   await serviceClient.from("profiles").update({
-    scrolls: (profile.scrolls ?? 0) + reward.coins,
+    coins: (profile.coins ?? 0) + reward.coins,
     gems: (profile.gems ?? 0) + reward.gems,
   }).eq("id", userId);
 
   // Credit XP via grant_xp RPC so fan_level recalculates atomically
   let leveledUp = false;
   let newFanLevel: number | null = null;
+  let newXp: number | null = null;
   if (reward.xp > 0) {
     const { data: xpData } = await serviceClient.rpc("grant_xp", {
       p_user_id: userId,
@@ -143,6 +144,7 @@ Deno.serve(async (req: Request) => {
     if (xpData) {
       leveledUp = xpData.leveled_up ?? false;
       newFanLevel = xpData.new_fan_level ?? null;
+      newXp = xpData.new_xp ?? null;
     }
   }
 
@@ -188,5 +190,6 @@ Deno.serve(async (req: Request) => {
     already_claimed: false,
     leveled_up: leveledUp,
     new_fan_level: newFanLevel,
+    new_xp: newXp,
   });
 });

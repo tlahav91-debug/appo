@@ -112,11 +112,19 @@ class _EnergyGateState extends ConsumerState<EnergyGate> {
         final router = GoRouter.of(context);
         Navigator.pop(context);
         router.push('/series/${ep.seriesId}/episode/${ep.id}', extra: ep);
-      } else if (data['code'] == 'INSUFFICIENT_COINS') {
+      } else {
+        setState(() { _feedback = 'Unlock failed. Try again.'; _coinLoading = false; });
+      }
+    } on FunctionException catch (fe) {
+      if (!mounted) return;
+      final body = fe.details;
+      if (fe.status == 402 && body is Map && body['code'] == 'INSUFFICIENT_COINS') {
         setState(() {
-          _feedback = 'Not enough coins (need ${data['required']} 🪙).';
+          _feedback = 'Not enough coins (need ${body['required']} 🪙).';
           _coinLoading = false;
         });
+      } else if (fe.status == 409) {
+        setState(() { _feedback = 'Balance changed — please retry.'; _coinLoading = false; });
       } else {
         setState(() { _feedback = 'Unlock failed. Try again.'; _coinLoading = false; });
       }

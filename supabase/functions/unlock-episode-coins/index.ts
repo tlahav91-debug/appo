@@ -55,37 +55,26 @@ Deno.serve(async (req: Request) => {
 
   const cost = episode.coin_cost as number;
 
-  // Atomically debit coins — only succeeds if user has enough
-  const { data: updatedProfile, error: debitErr } = await supabase
+  // Read then conditional update — optimistic lock prevents concurrent double-spend
+  const { data: profile } = await supabase
     .from("profiles")
-    .update({ coins: supabase.rpc("decrement_coins", { amount: cost }) as unknown as number })
+    .select("coins")
     .eq("id", userId)
-    .gte("coins", cost)
+    .single();
+  if (!profile) return json({ error: "Profile not found" }, 404);
+  if ((profile.coins ?? 0) < cost) {
+    return json({ code: "INSUFFICIENT_COINS", required: cost, current: profile.coins ?? 0 }, 402);
+  }
+  const coinsAfterDebit = profile.coins - cost;
+  const { data: debited, error: debitErr } = await supabase
+    .from("profiles")
+    .update({ coins: coinsAfterDebit })
+    .eq("id", userId)
+    .eq("coins", profile.coins) // optimistic lock — fails if balance changed concurrently
     .select("coins")
     .maybeSingle();
-
-  // Fallback: raw arithmetic debit if RPC helper unavailable
-  if (debitErr || !updatedProfile) {
-    // Read then conditional update pattern
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("coins")
-      .eq("id", userId)
-      .single();
-    if (!profile) return json({ error: "Profile not found" }, 404);
-    if ((profile.coins ?? 0) < cost) {
-      return json({ code: "INSUFFICIENT_COINS", required: cost, current: profile.coins ?? 0 }, 402);
-    }
-    const { data: debited, error: updateErr } = await supabase
-      .from("profiles")
-      .update({ coins: profile.coins - cost })
-      .eq("id", userId)
-      .eq("coins", profile.coins) // optimistic lock
-      .select("coins")
-      .maybeSingle();
-    if (updateErr || !debited) {
-      return json({ code: "COIN_CONFLICT", message: "Balance changed, please retry" }, 409);
-    }
+  if (debitErr || !debited) {
+    return json({ code: "COIN_CONFLICT", message: "Balance changed, please retry" }, 409);
   }
 
   // Record unlock
@@ -95,8 +84,8 @@ Deno.serve(async (req: Request) => {
 
   if (unlockErr) {
     if (unlockErr.code === "23505") return json({ unlocked: true, already_unlocked: true });
-    // Refund coins on unlock failure
-    await supabase.from("profiles").update({ coins: (updatedProfile?.coins ?? 0) + cost }).eq("id", userId);
+    // Refund coins on unlock record failure
+    await supabase.from("profiles").update({ coins: debited.coins + cost }).eq("id", userId);
     return json({ error: "Failed to record unlock" }, 500);
   }
 

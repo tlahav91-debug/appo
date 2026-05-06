@@ -79,14 +79,19 @@ Deno.serve(async (req: Request) => {
   const allComplete = episodes.every((ep) => completedIds.has(ep.id));
   if (!allComplete) return json({ error: "Series not fully completed yet" }, 400);
 
-  // Upsert completion row and mark reward claimed
-  const { error: upsertErr } = await supabase
+  // Insert completion row — ignoreDuplicates makes PK conflict a no-op, preventing double-grant
+  const { data: claimRows, error: claimErr } = await supabase
     .from("marathon_completions")
     .upsert(
       { user_id: userId, marathon_id, reward_claimed_at: now.toISOString() },
-      { onConflict: "user_id,marathon_id" },
-    );
-  if (upsertErr) return json({ error: "Failed to record completion" }, 500);
+      { onConflict: "user_id,marathon_id", ignoreDuplicates: true },
+    )
+    .select("user_id");
+  if (claimErr) return json({ error: "Failed to record completion" }, 500);
+  // If the PK conflict fired, no row was returned — another request already claimed
+  if (!claimRows || claimRows.length === 0) {
+    return json({ granted: false, already_claimed: true });
+  }
 
   // Credit coins
   const { data: profile } = await supabase
