@@ -10,6 +10,7 @@ import '../../features/inbox/presentation/inbox_screen.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/domain/fan_level.dart';
 import '../../features/profile/domain/profile.dart';
+import '../../features/rewards/application/streak_provider.dart';
 import 'coin_refill_sheet.dart';
 import 'currency_display.dart';
 
@@ -42,6 +43,7 @@ class _HudContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final thresholds = ref.watch(fanLevelThresholdsProvider).valueOrNull ?? [];
     final fanLevel = FanLevel.fromProfile(profile.xp, profile.fanLevel, thresholds);
+    final currentStreak = ref.watch(streakStatusProvider).valueOrNull?.currentStreak ?? 0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -116,6 +118,17 @@ class _HudContent extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (currentStreak >= 1) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '🔥$currentStreak',
+                  style: GoogleFonts.nunito(
+                    color: gold,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
               const Spacer(),
               // Coins — tap opens refill sheet when balance is zero
               GestureDetector(
