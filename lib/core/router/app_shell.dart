@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/onboarding/application/onboarding_provider.dart';
+import '../../features/episodes/domain/episode.dart';
 import '../../features/profile/application/profile_provider.dart';
 import '../../features/profile/presentation/home_screen.dart';
 import '../../features/profile/presentation/rewards_screen.dart';
@@ -47,14 +48,24 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider).valueOrNull;
-    final onboardingGuard = ref.watch(onboardingGuardProvider);
+    final shouldOnboard = ref.watch(shouldShowOnboardingProvider);
+    final onboardingSeries = ref.watch(onboardingSeriesProvider);
 
-    if (!_onboardingChecked && onboardingGuard.valueOrNull == true) {
-      _onboardingChecked = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/onboarding');
-      });
-    } else if (onboardingGuard.hasValue) {
+    if (!_onboardingChecked && shouldOnboard.valueOrNull == true) {
+      final series = onboardingSeries.valueOrNull;
+      if (series != null) {
+        _onboardingChecked = true;
+        final Episode ep = series.firstEpisode;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.push(
+              '/series/${series.seriesId}/episode/${ep.id}',
+              extra: ep,
+            );
+          }
+        });
+      }
+    } else if (shouldOnboard.hasValue) {
       _onboardingChecked = true;
     }
 

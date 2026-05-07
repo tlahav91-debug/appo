@@ -140,6 +140,122 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 // ---------------------------------------------------------------------------
+// OnboardingGenreSheet — bottom sheet shown after first choice
+// ---------------------------------------------------------------------------
+
+class OnboardingGenreSheet extends ConsumerStatefulWidget {
+  const OnboardingGenreSheet({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      builder: (_) => const OnboardingGenreSheet(),
+    );
+  }
+
+  @override
+  ConsumerState<OnboardingGenreSheet> createState() => _OnboardingGenreSheetState();
+}
+
+class _OnboardingGenreSheetState extends ConsumerState<OnboardingGenreSheet> {
+  Set<String> _selected = {};
+
+  static const _genres = ['Romance', 'Thriller', 'Comedy', 'Fantasy', 'Drama', 'Mystery'];
+
+  Future<void> _submit() async {
+    if (_selected.isEmpty) return;
+    await completeOnboarding(_selected.toList());
+    ref.invalidate(profileProvider);
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          24, 12, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: borderHi,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Find more like this',
+            style: GoogleFonts.nunito(
+              color: textCol,
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pick the genres you love',
+            style: GoogleFonts.sora(color: textDim, fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: _genres
+                .map(
+                  (g) => _GenrePill(
+                    genre: g,
+                    selected: _selected.contains(g),
+                    onTap: () => setState(() {
+                      _selected.contains(g)
+                          ? _selected.remove(g)
+                          : _selected.add(g);
+                    }),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 28),
+          GestureDetector(
+            onTap: _selected.isNotEmpty ? _submit : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: 52,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: _selected.isNotEmpty ? purpleGrad : null,
+                color: _selected.isNotEmpty ? null : surface,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                "Let's Go",
+                style: GoogleFonts.nunito(
+                  color: _selected.isNotEmpty ? textCol : textDim,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Genre Pill
 // ---------------------------------------------------------------------------
 

@@ -10,7 +10,6 @@ import '../../core/theme/tokens.dart';
 
 class NotificationService {
   static const _promptShownKey = 'notifications_prompt_shown';
-  static const _episodeCountKey = 'notification_episode_count';
 
   final _local = FlutterLocalNotificationsPlugin();
   StreamSubscription<String>? _tokenRefreshSub;
@@ -61,53 +60,50 @@ class NotificationService {
     );
   }
 
-  // Called each time an episode is viewed. Shows soft-ask on 3rd view.
+  // Called each time an episode is viewed — registers token if already authorized.
   Future<void> onEpisodeViewed(BuildContext context) async {
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      await registerCurrentToken();
+    }
+  }
+
+  // Shows the push permission soft-ask if not already shown/granted.
+  // Safe to call from a mounted BuildContext after a modal closes.
+  Future<void> showSoftAskIfNeeded(BuildContext context) async {
     if (_softAskInProgress) return;
     _softAskInProgress = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final alreadyShown = prefs.getBool(_promptShownKey) ?? false;
-      if (alreadyShown) return;
-
-      // Check if already authorized on any platform
       final settings = await FirebaseMessaging.instance.getNotificationSettings();
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        await prefs.setBool(_promptShownKey, true);
         await registerCurrentToken();
         return;
       }
 
-      final count = (prefs.getInt(_episodeCountKey) ?? 0) + 1;
-      await prefs.setInt(_episodeCountKey, count);
+      final prefs = await SharedPreferences.getInstance();
+      final alreadyShown = prefs.getBool(_promptShownKey) ?? false;
+      if (alreadyShown) return;
 
-      if (count >= 3 && context.mounted) {
-        await _showSoftAsk(context, prefs);
+      await prefs.setBool(_promptShownKey, true);
+      if (!context.mounted) return;
+
+      final agreed = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (_) => const _NotificationSoftAsk(),
+      );
+
+      if (agreed == true) {
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        await registerCurrentToken();
       }
     } finally {
       _softAskInProgress = false;
-    }
-  }
-
-  Future<void> _showSoftAsk(BuildContext context, SharedPreferences prefs) async {
-    await prefs.setBool(_promptShownKey, true);
-
-    if (!context.mounted) return;
-
-    final agreed = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => const _NotificationSoftAsk(),
-    );
-
-    if (agreed == true) {
-      await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      await registerCurrentToken();
     }
   }
 

@@ -8,7 +8,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/deep_link/deep_link_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'features/onboarding/application/onboarding_provider.dart';
 
 // Must be a top-level function; called by FCM when the app is terminated
 @pragma('vm:entry-point')
@@ -23,7 +22,6 @@ Future<void> main() async {
   assert(supabaseAnonKey.isNotEmpty, 'SUPABASE_ANON_KEY must be set via --dart-define');
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-  await incrementLaunchCount();
   await MobileAds.instance.initialize();
 
   const posthogKey = String.fromEnvironment('POSTHOG_API_KEY');

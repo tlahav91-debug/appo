@@ -19,6 +19,8 @@ import '../../social/application/social_provider.dart';
 import '../../achievements/application/achievements_provider.dart';
 import '../../collectibles/application/album_provider.dart';
 import '../../profile/application/profile_provider.dart';
+import '../../onboarding/application/onboarding_provider.dart';
+import '../../onboarding/presentation/onboarding_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EpisodeDetailScreen extends ConsumerStatefulWidget {
@@ -178,7 +180,7 @@ class _EpisodeDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
 // and to await ChoiceSheet then call onDone.
 // ---------------------------------------------------------------------------
 
-class _ChoiceBar extends StatelessWidget {
+class _ChoiceBar extends ConsumerWidget {
   final Episode episode;
   final AsyncValue choicesAsync;
   final bool isUnlocked;
@@ -192,7 +194,7 @@ class _ChoiceBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       color: surface,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -239,7 +241,7 @@ class _ChoiceBar extends StatelessWidget {
             );
           }
 
-          // Has choices — open ChoiceSheet then mark done on close
+          // Has choices — open ChoiceSheet then trigger onboarding if first-time user
           return GestureDetector(
             onTap: () async {
               await ChoiceSheet.show(
@@ -247,7 +249,18 @@ class _ChoiceBar extends StatelessWidget {
                 episodeId: episode.id,
                 choices: choices,
               );
-              if (context.mounted) onDone();
+              if (!context.mounted) return;
+              final isFirstChoice =
+                  ref.read(shouldShowOnboardingProvider).valueOrNull == true;
+              if (isFirstChoice) {
+                await OnboardingGenreSheet.show(context);
+                if (!context.mounted) return;
+                await ref
+                    .read(notificationServiceProvider)
+                    .showSoftAskIfNeeded(context);
+                if (!context.mounted) return;
+              }
+              onDone();
             },
             child: Container(
               width: double.infinity,
