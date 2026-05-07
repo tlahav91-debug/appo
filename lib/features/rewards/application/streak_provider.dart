@@ -2,14 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StreakStatus {
-  final int currentStreak;    // 0 if never checked in
+  final int currentStreak;
   final bool claimedToday;
-  final List<bool> weekHistory; // 7 booleans, index 0 = day 1
+  final List<bool> weekHistory;
+  final bool shieldAvailable;
+  final bool streakBroken;
 
   const StreakStatus({
     required this.currentStreak,
     required this.claimedToday,
     required this.weekHistory,
+    this.shieldAvailable = false,
+    this.streakBroken = false,
   });
 }
 
@@ -42,7 +46,9 @@ const streakRewards = [
 
 final streakStatusProvider = FutureProvider<StreakStatus>((ref) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
-  if (userId == null) return const StreakStatus(currentStreak: 0, claimedToday: false, weekHistory: [false, false, false, false, false, false, false]);
+  if (userId == null) {
+    return const StreakStatus(currentStreak: 0, claimedToday: false, weekHistory: [false, false, false, false, false, false, false]);
+  }
 
   final data = await Supabase.instance.client
       .from('daily_check_ins')
@@ -51,10 +57,22 @@ final streakStatusProvider = FutureProvider<StreakStatus>((ref) async {
       .order('checked_in_at', ascending: false)
       .limit(7);
 
+  final profileData = await Supabase.instance.client
+      .from('profiles')
+      .select('streak_shield_available')
+      .eq('id', userId)
+      .single();
+
+  final shieldAvailable = profileData['streak_shield_available'] as bool? ?? false;
   final rows = (data as List).cast<Map<String, dynamic>>();
 
   if (rows.isEmpty) {
-    return const StreakStatus(currentStreak: 0, claimedToday: false, weekHistory: [false, false, false, false, false, false, false]);
+    return StreakStatus(
+      currentStreak: 0,
+      claimedToday: false,
+      weekHistory: const [false, false, false, false, false, false, false],
+      shieldAvailable: shieldAvailable,
+    );
   }
 
   final today = DateTime.now().toUtc();
@@ -84,10 +102,15 @@ final streakStatusProvider = FutureProvider<StreakStatus>((ref) async {
     weekHistory[i] = true;
   }
 
+  // Streak is broken when user has history but missed 2+ days
+  final streakBroken = currentStreak == 0 && !claimedToday;
+
   return StreakStatus(
     currentStreak: currentStreak,
     claimedToday: claimedToday,
     weekHistory: weekHistory,
+    shieldAvailable: shieldAvailable,
+    streakBroken: streakBroken,
   );
 });
 

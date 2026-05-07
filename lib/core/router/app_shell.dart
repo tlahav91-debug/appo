@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme/tokens.dart';
 import '../../features/onboarding/application/onboarding_provider.dart';
 import '../../features/episodes/domain/episode.dart';
@@ -26,6 +27,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   int _selectedIndex = 0;
   bool _starterPackOffered = false;
   bool _onboardingChecked = false;
+  bool _timezoneWritten = false;
 
   static const _screens = [
     HomeScreen(),
@@ -67,6 +69,20 @@ class _AppShellState extends ConsumerState<AppShell> {
       }
     } else if (shouldOnboard.hasValue) {
       _onboardingChecked = true;
+    }
+
+    if (profile != null && !_timezoneWritten) {
+      _timezoneWritten = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final uid = Supabase.instance.client.auth.currentUser?.id;
+        if (uid == null) return;
+        Supabase.instance.client
+            .from('profiles')
+            .update({'user_timezone': DateTime.now().timeZoneName})
+            .eq('id', uid)
+            .then((_) {})
+            .catchError((_) {});
+      });
     }
 
     if (profile != null && !_starterPackOffered) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../shared/widgets/stars.dart';
 import '../../../shared/widgets/hud.dart';
@@ -81,11 +82,17 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
               Text('Check in every day for escalating rewards', style: GoogleFonts.sora(color: textSec, fontSize: 13)),
               const SizedBox(height: 16),
 
-              // Streak card
+              // Streak card + optional break banner
               streakAsync.when(
                 loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: pink, strokeWidth: 2))),
                 error: (_, __) => Center(child: Text('Failed to load', style: GoogleFonts.sora(color: textDim))),
-                data: (status) => _StreakCard(status: status, claiming: _claiming, onClaim: _claimStreak),
+                data: (status) => Column(
+                  children: [
+                    if (status.streakBroken)
+                      _StreakBreakBanner(shieldAvailable: status.shieldAvailable),
+                    _StreakCard(status: status, claiming: _claiming, onClaim: _claimStreak),
+                  ],
+                ),
               ),
             ],
           ),
@@ -220,6 +227,140 @@ class _DayTile extends StatelessWidget {
         Text('🪙$coins', style: GoogleFonts.sora(color: textDim, fontSize: 9)),
         if (gems > 0) Text('💎$gems', style: GoogleFonts.sora(color: cyan, fontSize: 9)),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Streak Break Banner
+// ---------------------------------------------------------------------------
+
+class _StreakBreakBanner extends ConsumerStatefulWidget {
+  final bool shieldAvailable;
+
+  const _StreakBreakBanner({required this.shieldAvailable});
+
+  @override
+  ConsumerState<_StreakBreakBanner> createState() => _StreakBreakBannerState();
+}
+
+class _StreakBreakBannerState extends ConsumerState<_StreakBreakBanner> {
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _useShield(String type) async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) return;
+      final res = await Supabase.instance.client.functions.invoke(
+        'use-streak-shield',
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
+        body: {'type': type},
+      );
+      final data = res.data as Map<String, dynamic>;
+      if (data['restored'] == true) {
+        ref.invalidate(streakStatusProvider);
+        ref.invalidate(profileProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '🔥 Streak restored!',
+                style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w700),
+              ),
+              backgroundColor: surface,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } on FunctionException catch (fe) {
+      final body = fe.details;
+      String msg = 'Something went wrong';
+      if (fe.status == 402) {
+        msg = body is Map && body['error'] == 'Insufficient gems'
+            ? 'Not enough 💎 gems'
+            : 'Shield not available';
+      }
+      if (mounted) setState(() { _error = msg; });
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Something went wrong'; });
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderHi),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '😔 Streak broken',
+            style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w900, fontSize: 16),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Use a shield to restore your streak',
+            style: GoogleFonts.sora(color: textSec, fontSize: 13),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: GoogleFonts.sora(color: pink, fontSize: 12)),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              if (widget.shieldAvailable) ...[
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _loading ? null : () => _useShield('free'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: purpleGrad,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: _loading
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: textCol))
+                            : Text('🛡️ Free Shield', style: GoogleFonts.nunito(color: textCol, fontWeight: FontWeight.w800, fontSize: 13)),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: GestureDetector(
+                  onTap: _loading ? null : () => _useShield('paid'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: goldGrad,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: _loading
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: bgDeep))
+                          : Text('💎 50 gems', style: GoogleFonts.nunito(color: bgDeep, fontWeight: FontWeight.w800, fontSize: 13)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

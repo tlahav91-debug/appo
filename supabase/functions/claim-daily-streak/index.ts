@@ -98,5 +98,19 @@ serve(async (req) => {
     d_gems: gemsEarned,
   });
 
-  return json({ claimed: true, streak_day: streakDay, coins_earned: coinsEarned, gems_earned: gemsEarned });
+  // Grant streak shield on day-7 cycle completion
+  if (streakDay === 7) {
+    await supabaseAdmin
+      .from("profiles")
+      .update({ streak_shield_available: true })
+      .eq("id", userId);
+  }
+
+  return json({
+    claimed: true,
+    streak_day: streakDay,
+    coins_earned: coinsEarned,
+    gems_earned: gemsEarned,
+    shield_granted: streakDay === 7,
+  });
 });
